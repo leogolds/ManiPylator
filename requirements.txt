@@ -1,0 +1,2 @@
+panel==1.5.5
+jupyterlab==4.3.5

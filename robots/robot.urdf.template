@@ -1,0 +1,323 @@
+<robot name="onshape">
+<link name="base">
+<visual>
+<origin xyz="0.0050000000000821739551 -5.8194663777412140787e-17 0.27800000000000002487" rpy="1.570796326794896558 -0 -1.570796326794896558" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/base.stl"/>
+</geometry>
+<material name="base_material">
+<color rgba="0.15686274509803921351 0.15686274509803921351 0.15686274509803921351 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="0.0050000000000821739551 -5.8194663777412140787e-17 0.27800000000000002487" rpy="1.570796326794896558 -0 -1.570796326794896558" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/base.stl"/>
+</geometry>
+</collision>
+<inertial>
+<origin xyz="-0.00011265867616427026332 -4.5386811759117257005e-05 0.017135759761536861756" rpy="0 0 0"/>
+<mass value="0.42841802966019687515" />
+<inertia ixx="0.00064602507988347260791" ixy="-2.2001300436442401969e-05"  ixz="6.5364849276818986554e-07" iyy="0.00068995950799835580915" iyz="2.6354237622342715372e-07" izz="0.0012406260133752415511" />
+</inertial>
+</link>
+
+<link name="carriage_1">
+<visual>
+<origin xyz="0 -0.0050000000000820100238 -0.23999999999999999112" rpy="-1.570796326794896558 -0 -2.1923962811072402777e-85" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/carriage_1.stl"/>
+</geometry>
+<material name="carriage_1_material">
+<color rgba="0 0 1 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="0 -0.0050000000000820100238 -0.23999999999999999112" rpy="-1.570796326794896558 -0 -2.1923962811072402777e-85" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/carriage_1.stl"/>
+</geometry>
+</collision>
+<inertial>
+<origin xyz="-0.023150399814567530071 -6.8452453490545558945e-06 -0.051939322559866489548" rpy="0 0 0"/>
+<mass value="0.41482347331597585471" />
+<inertia ixx="0.00086760620138834126588" ixy="2.0975973300442710159e-07"  ixz="-5.335461068506447234e-05" iyy="0.00090177245271764712789" iyz="-1.3396468832869947513e-08" izz="0.0011302714548553933344" />
+</inertial>
+</link>
+
+<link name="shoulder_lift">
+<visual>
+<origin xyz="0.18500000000000105249 -0.0050024692418249245077 0.065999147431594254454" rpy="-1.570796326794896558 -1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/abs_pipe_-_3&quot;.stl"/>
+</geometry>
+<material name="abs_pipe_-_3&quot;_material">
+<color rgba="0.15686274509803921351 0.15686274509803921351 0.15686274509803921351 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="0.18500000000000105249 -0.0050024692418249245077 0.065999147431594254454" rpy="-1.570796326794896558 -1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/abs_pipe_-_3&quot;.stl"/>
+</geometry>
+</collision>
+<visual>
+<origin xyz="0.18492527692447696674 -0.005002337924161806039 0.066073318972919486969" rpy="-1.570796326794896558 -1.570796326794896336 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/link_carriage.stl"/>
+</geometry>
+<material name="link_carriage_material">
+<color rgba="0 0 1 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="0.18492527692447696674 -0.005002337924161806039 0.066073318972919486969" rpy="-1.570796326794896558 -1.570796326794896336 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/link_carriage.stl"/>
+</geometry>
+</collision>
+<visual>
+<origin xyz="0.18507735146036502494 -0.0048452970793513511563 0.066077351460398003891" rpy="-1.570796326794896558 -1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/carriage_2.stl"/>
+</geometry>
+<material name="carriage_2_material">
+<color rgba="0 0 1 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="0.18507735146036502494 -0.0048452970793513511563 0.066077351460398003891" rpy="-1.570796326794896558 -1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/carriage_2.stl"/>
+</geometry>
+</collision>
+<inertial>
+<origin xyz="0.02315029420940292737 6.8343455309500394934e-06 -0.05193936685330259595" rpy="0 0 0"/>
+<mass value="0.41482359472485302865" />
+<inertia ixx="0.00086760335304015884141" ixy="2.0620860157982380339e-07"  ixz="5.3355089090974940167e-05" iyy="0.00090177397441154171637" iyz="1.1881109004419204797e-08" izz="0.0011302709841813816331" />
+</inertial>
+</link>
+
+<link name="elbow">
+<visual>
+<origin xyz="-0.16500000000000003553 0.0050000000000817810403 -0.065000000000033322789" rpy="1.570796326794896558 1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/knee_cap.stl"/>
+</geometry>
+<material name="knee_cap_material">
+<color rgba="0.15686274509803921351 0.15686274509803921351 0.15686274509803921351 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-0.16500000000000003553 0.0050000000000817810403 -0.065000000000033322789" rpy="1.570796326794896558 1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/knee_cap.stl"/>
+</geometry>
+</collision>
+<visual>
+<origin xyz="-0.16800000000000037126 0.0050000000000815034845 -0.065000000000033544834" rpy="1.570796326794896558 1.5707963267948950037 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/abs_pipe_-_2&quot;.stl"/>
+</geometry>
+<material name="abs_pipe_-_2&quot;_material">
+<color rgba="0.15686274509803921351 0.15686274509803921351 0.15686274509803921351 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-0.16800000000000037126 0.0050000000000815034845 -0.065000000000033544834" rpy="1.570796326794896558 1.5707963267948950037 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/abs_pipe_-_2&quot;.stl"/>
+</geometry>
+</collision>
+<visual>
+<origin xyz="-0.16798843517540668069 0.004999868581620051794 -0.065000000000052668425" rpy="1.570796326794896558 1.5707963267948950037 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/wrist_carriage_1.stl"/>
+</geometry>
+<material name="wrist_carriage_1_material">
+<color rgba="0 0 1 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-0.16798843517540668069 0.004999868581620051794 -0.065000000000052668425" rpy="1.570796326794896558 1.5707963267948950037 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/wrist_carriage_1.stl"/>
+</geometry>
+</collision>
+<inertial>
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<mass value="0" />
+<inertia ixx="0" ixy="0"  ixz="0" iyy="0" iyz="0" izz="0" />
+</inertial>
+</link>
+
+<link name="wrist_carriage_2">
+<visual>
+<origin xyz="-0.48848716041620759976 -0.0049998685816179007368 0.04099892236864070838" rpy="-1.570796326794896558 -1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/wrist_carriage_2.stl"/>
+</geometry>
+<material name="wrist_carriage_2_material">
+<color rgba="0 0 1 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-0.48848716041620759976 -0.0049998685816179007368 0.04099892236864070838" rpy="-1.570796326794896558 -1.570796326794896558 0" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/wrist_carriage_2.stl"/>
+</geometry>
+</collision>
+<inertial>
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<mass value="0" />
+<inertia ixx="0" ixy="0"  ixz="0" iyy="0" iyz="0" izz="0" />
+</inertial>
+</link>
+
+<link name="wrist_carriage_3">
+<visual>
+<origin xyz="0.08950000000003359435 -0.0050000000000836276534 0.52949999999999941558" rpy="-1.570796326794896558 4.505158843386897275e-32 -1.6833450294541540889e-32" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/wrist_carriage_3.stl"/>
+</geometry>
+<material name="wrist_carriage_3_material">
+<color rgba="0 0 1 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="0.08950000000003359435 -0.0050000000000836276534 0.52949999999999941558" rpy="-1.570796326794896558 4.505158843386897275e-32 -1.6833450294541540889e-32" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/wrist_carriage_3.stl"/>
+</geometry>
+</collision>
+<inertial>
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<mass value="0" />
+<inertia ixx="0" ixy="0"  ixz="0" iyy="0" iyz="0" izz="0" />
+</inertial>
+</link>
+
+<link name="end_effector">
+<visual>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/z.stl"/>
+</geometry>
+<material name="z_material">
+<color rgba="0.2313725490196078538 0.38039215686274507888 0.7058823529411765163 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/z.stl"/>
+</geometry>
+</collision>
+<visual>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/y.stl"/>
+</geometry>
+<material name="y_material">
+<color rgba="0.37254901960784314596 0.65490196078431373028 0.23921568627450981448 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/y.stl"/>
+</geometry>
+</collision>
+<visual>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/part_4.stl"/>
+</geometry>
+<material name="part_4_material">
+<color rgba="0.91764705882352937127 0.91764705882352937127 0.91764705882352937127 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/part_4.stl"/>
+</geometry>
+</collision>
+<visual>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/x.stl"/>
+</geometry>
+<material name="x_material">
+<color rgba="1 0 0 1.0"/>
+</material>
+</visual>
+<collision>
+<origin xyz="-8.6736173798840354721e-19 0 0" rpy="-3.141592653589793116 1.8913293894225945816e-31 -1.5580002878120902242e-29" />
+<geometry>
+<mesh filename="package://BASE_STL_DIR/x.stl"/>
+</geometry>
+</collision>
+<inertial>
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<mass value="0" />
+<inertia ixx="0" ixy="0"  ixz="0" iyy="0" iyz="0" izz="0" />
+</inertial>
+</link>
+
+<joint name="wrist_3" type="revolute">
+<origin xyz="-0.039999999999999466538 -2.3167402296142559204e-06 -0.048499006119975263118" rpy="-1.570796326794896558 -6.4948046940567279437e-15 -1.570796326794896558" />
+<parent link="wrist_carriage_3" />
+<child link="end_effector" />
+<axis xyz="0 0 1"/>
+<limit effort="1" velocity="20" />
+<joint_properties friction="0.0"/>
+</joint>
+
+<joint name="wrist_2" type="revolute">
+<origin xyz="0.040012839583791870446 1.3141846407160327667e-07 -0.048501077631392781886" rpy="2.1496459667272549277e-29 -1.570796326794896558 0" />
+<parent link="wrist_carriage_2" />
+<child link="wrist_carriage_3" />
+<axis xyz="0 0 1"/>
+<limit effort="1" velocity="20" />
+<joint_properties friction="0.0"/>
+</joint>
+
+<joint name="wrist_1" type="revolute">
+<origin xyz="0.32049872977475557523 -4.6401192783929179342e-11 -0.025001050976464336828" rpy="3.1415926535897922278 -9.5580985866129206898e-16 -7.0166095156310650661e-14" />
+<parent link="elbow" />
+<child link="wrist_carriage_2" />
+<axis xyz="0 0 1"/>
+<limit effort="1" velocity="20" />
+<joint_properties friction="0.0"/>
+</joint>
+
+<joint name="shoulder_bend" type="revolute">
+<origin xyz="0.35000262838484058614 -2.3379240802335225269e-06 -4.0324874810288013904e-06" rpy="-3.141592653589793116 -7.851631197276692022e-30 -4.2188474935763766148e-15" />
+<parent link="shoulder_lift" />
+<child link="elbow" />
+<axis xyz="0 0 1"/>
+<limit effort="1" velocity="20" />
+<joint_properties friction="0.0"/>
+</joint>
+
+<joint name="shoulder_lift" type="revolute">
+<origin xyz="-0.065000000000033350545 -2.4692417420511303167e-06 -0.054999147431546130393" rpy="-3.5252221702064434489e-30 1.5707963267948923392 0" />
+<parent link="carriage_1" />
+<child link="shoulder_lift" />
+<axis xyz="0 0 1"/>
+<limit effort="1" velocity="20" />
+<joint_properties friction="0.0"/>
+</joint>
+
+<joint name="shoulder_rotate" type="revolute">
+<origin xyz="-7.4696559782952003068e-06 -2.9370654288469674742e-06 0.037000000000000310418" rpy="-3.141592653589793116 -1.3812059107148575223e-42 -1.1102230246251336142e-16" />
+<parent link="base" />
+<child link="carriage_1" />
+<axis xyz="0 0 1"/>
+<limit effort="1" velocity="20" />
+<joint_properties friction="0.0"/>
+</joint>
+
+
+</robot>
