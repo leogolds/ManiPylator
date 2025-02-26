@@ -1,8 +1,9 @@
 services:
   lab:
-    build:
-      context: .
-      dockerfile: containers/Dockerfile
+    # build:
+    #   context: .
+    #   dockerfile: containers/Dockerfile
+    image: manipylator-lab
     container_name: manipylator-lab
     entrypoint: jupyter lab --notebook-dir=/workspace --ip 0.0.0.0 --port 8888 --allow-root --NotebookApp.token='' --NotebookApp.password=''
     environment:
