@@ -3,8 +3,8 @@ from pathlib import Path
 import roboticstoolbox as rtb
 import genesis as gs
 
-gs.init(backend=gs.cpu)
-# gs.init(backend=gs.gpu)
+# gs.init(backend=gs.cpu)
+gs.init(backend=gs.gpu)
 
 
 class Visualizer:

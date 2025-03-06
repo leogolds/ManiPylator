@@ -1,3 +1,6 @@
+# Fimware compilation output
+controller/out
+
 # onshape-to-urdf config
 robots/config.json
 

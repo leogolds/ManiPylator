@@ -1,0 +1,41 @@
+[gcode_macro EXAMPLE]
+gcode:
+    M109 S200
+    {% for i in range(5) %}
+        {% if printer.extruder.temperature < 100 %}
+            M117 HEATING...
+        {% else %}
+            M117 Done.
+        {% endif %}
+    {% endfor %}
+
+
+
+[gcode_macro EXAMPLE5]
+gcode:
+    {% set var_int = params.INT_VALUE|int %}
+    {% set var_float = params.FLOAT_VALUE|float %}
+    {% set var_list = params.LIST_VALUE|split(",") %}
+
+
+[gcode_macro EXAMPLE6]
+gcode:
+    {% set var_int = params.INT_VALUE|default(5)|int %}
+    {% set var_float = params.FLOAT_VALUE|default(2.5)|float %}
+
+[gcode_macro EXAMPLE3]
+gcode:
+    {% set var1 = 10 %}
+    {% set var2 = printer.toolhead.axis_maximum.x %}
+    {% set var3 = printer.toolhead.axis_maximum.y %}
+
+    {% if var2 < var1 %}
+        G0 X{var1}
+    {% endif %}
+
+    G28
+    G0 X0 Y0 Z10
+    {% for i in range(var1) %}
+        G0 X{var2} Y{var3}
+        G0 X0 Y0
+    {% endfor %}

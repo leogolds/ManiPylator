@@ -1,4 +1,16 @@
 services:
+  mq:
+    image: eclipse-mosquitto:2.0.20
+    hostname: mq
+    container_name: mq
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto:/etc/mosquitto
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
   lab:
     # build:
     #   context: .
@@ -15,3 +27,10 @@ services:
     ports:
       - '8888:8888'
     restart: "no"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
