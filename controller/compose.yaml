@@ -6,12 +6,12 @@ services:
 
   ## Klippy Services
   ##
-  klipper:
+  klipper: &klipper
     image: mkuf/klipper:latest
     restart: unless-stopped
     privileged: true
-    logging:
-      driver: none
+    # logging:
+    #   driver: none
     depends_on:
       init:
         condition: service_completed_successfully
@@ -26,14 +26,28 @@ services:
     labels:
       org.prind.service: klipper
 
+  ## Reconfigure Klipper service for simulavr
+  klipper-simulated:
+    <<: *klipper
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      simulavr:
+        condition: service_started
+    profiles:
+      - simulated
+    command: >
+      -I printer_data/run/klipper.tty -a printer_data/run/klipper.sock printer_data/config/printer-simulavr.cfg -l printer_data/logs/klippy.log
+
   ## WebApi
   ##
-  moonraker:
+  moonraker: &moonraker
     image: mkuf/moonraker:latest
     restart: unless-stopped
     pid: host
-    logging:
-      driver: none
+    # privileged: true
+    # logging:
+    #   driver: none
     depends_on:
       init:
         condition: service_completed_successfully
@@ -50,17 +64,23 @@ services:
       - moonraker-db:/opt/printer_data/database
       - ./config:/opt/printer_data/config
     profiles:
-      - fluidd
       - mainsail
-      - klipperscreen
-      - moonraker-telegram-bot
-      - mobileraker_companion
     labels:
       org.prind.service: moonraker
       traefik.enable: true
       traefik.http.services.moonraker.loadbalancer.server.port: 7125
       traefik.http.routers.moonraker.rule: PathPrefix(`/websocket`) ||  PathPrefix(`/printer`) ||  PathPrefix(`/api`) ||  PathPrefix(`/access`) ||  PathPrefix(`/machine`) || PathPrefix(`/server`)
       traefik.http.routers.moonraker.entrypoints: web
+
+  moonraker-simulated:
+    <<: *klipper
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      klipper-simulated:
+        condition: service_started
+    profiles:
+      - simulated
 
   ## Frontend
   ##
@@ -69,6 +89,7 @@ services:
     restart: unless-stopped
     profiles:
       - mainsail
+      - simulated
     labels:
       org.prind.service: mainsail
       traefik.enable: true
@@ -76,40 +97,13 @@ services:
       traefik.http.routers.mainsail.rule: PathPrefix(`/`)
       traefik.http.routers.mainsail.entrypoints: web
 
-  hostmcu:
-    image: mkuf/klipper:latest-hostmcu
-    restart: unless-stopped
-    privileged: true
-    volumes:
-      - /dev:/dev
-      - run:/opt/printer_data/run
-    profiles:
-      - hostmcu
-    labels:
-      org.prind.service: hostmcu
-
-  ## Accompanying Services/Infra
-  ##
-
-  ## Config dir needs to be writable by uid/gid 1000
-  ## This container sets the right permissions and exits
-  init:
-    image: busybox:latest
-    command: chown -R 1000:1000 /prind/config
-    volumes:
-      - .:/prind
-    labels:
-      org.prind.service: init
-
   ## simulavr
   simulavr:
     image: simulavr
     restart: unless-stopped
     build:
-      context: docker/klipper
-      target: build-simulavr
-      args:
-        VERSION: master
+      context: ./simulavr
+      # target: build-simulavr
     privileged: true
     volumes:
       - /dev:/dev
@@ -118,18 +112,6 @@ services:
       - simulated
     labels:
       org.prind.service: simulavr
-
-  ## Reconfigure Klipper service for simulavr
-  klipper-simulated:
-    depends_on:
-      init:
-        condition: service_completed_successfully
-      simulavr:
-        condition: service_started
-    profiles:
-      - simulated
-    command: >
-      -I printer_data/run/klipper.tty -a printer_data/run/klipper.sock printer_data/config/printer-simulavr.cfg -l printer_data/logs/klippy.log
 
   ## Loadbalancer/Proxy
   traefik:
@@ -147,8 +129,23 @@ services:
     labels:
       org.prind.service: traefik
 
+  mq:
+    image: eclipse-mosquitto:2.0.20
+    hostname: mq
+    container_name: mq
+    restart: unless-stopped
+    profiles:
+      - mainsail
+      - simulated
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto:/etc/mosquitto
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
   make:
-    image: mkuf/klipper:${TAG:-latest}-tools
+    image: mkuf/klipper:latest-tools
     tty: true
     privileged: true
     # entrypoint: make
@@ -165,6 +162,16 @@ services:
       # - /dev:/dev
       - ./config/build.config:/opt/klipper/.config
       - ./out:/opt/klipper/out
+
+  ## Config dir needs to be writable by uid/gid 1000
+  ## This container sets the right permissions and exits
+  init:
+    image: busybox:latest
+    command: chown -R 1000:1000 /prind/config
+    volumes:
+      - .:/prind
+    labels:
+      org.prind.service: init
 
 volumes:
   run:
