@@ -73,7 +73,7 @@ services:
       traefik.http.routers.moonraker.entrypoints: web
 
   moonraker-simulated:
-    <<: *klipper
+    <<: *moonraker
     depends_on:
       init:
         condition: service_completed_successfully
