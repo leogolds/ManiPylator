@@ -12,6 +12,8 @@ services:
     privileged: true
     # logging:
     #   driver: none
+    profiles:
+      - full
     depends_on:
       init:
         condition: service_completed_successfully
@@ -53,6 +55,8 @@ services:
         condition: service_completed_successfully
       klipper:
         condition: service_started
+      mq:
+        condition: service_started
     volumes:
       - /dev/null:/opt/klipper/config/null
       - /dev/null:/opt/klipper/docs/null
@@ -64,7 +68,7 @@ services:
       - moonraker-db:/opt/printer_data/database
       - ./config:/opt/printer_data/config
     profiles:
-      - mainsail
+      - full
     labels:
       org.prind.service: moonraker
       traefik.enable: true
@@ -79,6 +83,16 @@ services:
         condition: service_completed_successfully
       klipper-simulated:
         condition: service_started
+      mq:
+        condition: service_started
+      simulavr:
+        condition: service_started
+    # post_start:
+    #   - command: |
+    #       mv /usr/bin/systemctl /usr/bin/systemctl.orig
+    #       echo "#!/bin/bash\nsudo systemctl.orig" > /usr/bin/systemctl
+    #       chmod +x /usr/bin/systemctl
+    #     user: root
     profiles:
       - simulated
 
@@ -88,7 +102,7 @@ services:
     image: ghcr.io/mainsail-crew/mainsail:edge
     restart: unless-stopped
     profiles:
-      - mainsail
+      - full
       - simulated
     labels:
       org.prind.service: mainsail
@@ -123,6 +137,9 @@ services:
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
+    profiles:
+      - full
+      - simulated
     restart: unless-stopped
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -132,10 +149,10 @@ services:
   mq:
     image: eclipse-mosquitto:2.0.20
     hostname: mq
-    container_name: mq
+    # container_name: mq
     restart: unless-stopped
     profiles:
-      - mainsail
+      - full
       - simulated
     ports:
       - "1883:1883"
