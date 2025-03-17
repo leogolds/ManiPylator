@@ -1,4 +1,5 @@
 <robot name="onshape">
+
 <link name="base">
 <visual>
 <origin xyz="0.005 0 0.278" rpy="1.570796326794896558 -0 -1.570796326794896558" />
@@ -196,83 +197,6 @@
 <inertia ixx="0" ixy="0"  ixz="0" iyy="0" iyz="0" izz="0" />
 </inertial>
 </link>
-
-<link name="end_effector">
-<visual>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/z.stl"/>
-</geometry>
-<material name="z_material">
-<color rgba="0.2313725490196078538 0.38039215686274507888 0.7058823529411765163 1.0"/>
-</material>
-</visual>
-<collision>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/z.stl"/>
-</geometry>
-</collision>
-<visual>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/y.stl"/>
-</geometry>
-<material name="y_material">
-<color rgba="0.37254901960784314596 0.65490196078431373028 0.23921568627450981448 1.0"/>
-</material>
-</visual>
-<collision>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/y.stl"/>
-</geometry>
-</collision>
-<visual>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/part_4.stl"/>
-</geometry>
-<material name="part_4_material">
-<color rgba="0.91764705882352937127 0.91764705882352937127 0.91764705882352937127 1.0"/>
-</material>
-</visual>
-<collision>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/part_4.stl"/>
-</geometry>
-</collision>
-<visual>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/x.stl"/>
-</geometry>
-<material name="x_material">
-<color rgba="1 0 0 1.0"/>
-</material>
-</visual>
-<collision>
-<origin xyz="0 0 0" rpy="-3.141592653589793116 0 0" />
-<geometry>
-<mesh filename="package:///workspace/robots/models/x.stl"/>
-</geometry>
-</collision>
-<inertial>
-<origin xyz="0 0 0" rpy="0 0 0"/>
-<mass value="0" />
-<inertia ixx="0" ixy="0"  ixz="0" iyy="0" iyz="0" izz="0" />
-</inertial>
-</link>
-
-<joint name="wrist_3" type="revolute">
-<origin xyz="-0.04 0 -0.0485" rpy="-1.570796326794896558 0 -1.570796326794896558" />
-<parent link="wrist_carriage_3" />
-<child link="end_effector" />
-<axis xyz="0 0 1"/>
-<limit effort="1" velocity="20" />
-<joint_properties friction="0.0"/>
-</joint>
 
 <joint name="wrist_2" type="revolute">
 <origin xyz="0.04 0 -0.0485" rpy="0 -1.570796326794896558 0" />
