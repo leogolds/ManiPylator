@@ -2,11 +2,12 @@ from pathlib import Path
 
 import roboticstoolbox as rtb
 
-import genesis as gs
-
 
 class Visualizer:
     def __init__(self, urdf_path: Path):
+        global gs
+        import genesis as gs
+
         # gs.init(backend=gs.cpu)
         gs.init(backend=gs.gpu)
 

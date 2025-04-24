@@ -1,1 +1,1 @@
-from .base import Robot
+from .base import Robot, VisualRobot
