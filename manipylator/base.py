@@ -51,6 +51,15 @@ class Robot:
     def __init__(self, urdf_path: Path):
         try:
             self.model = rtb.Robot.URDF(urdf_path)
+            # self.visualizer = Visualizer(urdf_path)
+        except Exception as e:
+            raise e
+
+
+class VisualRobot(Robot):
+    def __init__(self, urdf_path: Path):
+        try:
+            super().__init__(urdf_path)
             self.visualizer = Visualizer(urdf_path)
         except Exception as e:
             raise e
