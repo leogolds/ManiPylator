@@ -1,1 +1,1 @@
-from .base import Robot, VisualRobot
+from .base import Robot, VisualRobot, MovementCommand, MovementSequence

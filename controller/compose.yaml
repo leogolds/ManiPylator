@@ -115,9 +115,9 @@ services:
   simulavr:
     image: simulavr
     restart: unless-stopped
-    build:
-      context: ./simulavr
-      # target: build-simulavr
+    # build:
+    #   context: ./simulavr
+    #   # target: build-simulavr
     privileged: true
     volumes:
       - /dev:/dev

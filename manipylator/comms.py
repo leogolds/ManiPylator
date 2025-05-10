@@ -10,7 +10,8 @@ class MQTTConnection:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
-        self.client.connect("localhost", 1883, 60)
+        # self.client.connect("localhost", 1883, 60)
+        self.client.connect("192.168.1.8", 1883, 60)
         self.client.loop_start()
 
     def run_gcode_script(self, script: str):
@@ -38,9 +39,9 @@ class MQTTConnection:
         print(msg.topic + " " + str(msg.payload))
 
 
-conn = MQTTConnection()
+if __name__ == "__main__":
+    conn = MQTTConnection()
 
-
-for i in range(10):
-    conn.run_gcode_script(f"")
-    sleep(1)
+    for i in range(10):
+        conn.run_gcode_script(f"echo_numbers VALUE={1.5*i}")
+        sleep(1)
