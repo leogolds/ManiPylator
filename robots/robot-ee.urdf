@@ -1,3 +1,4 @@
+<?xml version="1.0" ?>
 <robot name="onshape">
 
 <link name="base">
@@ -242,7 +243,7 @@
     <parent link="wrist_carriage_3"/>
     <child link="end_effector"/>
     <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="1" lower="0" upper="6.28318530718" />
+    <limit effort="1" velocity="1" lower="-3.14159265359" upper="3.14159265359" />
     <joint_properties friction="0.0"/>
 </joint>
 
@@ -251,7 +252,7 @@
     <parent link="wrist_carriage_2" />
     <child link="wrist_carriage_3" />
     <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="1" lower="0" upper="6.28318530718" />
+    <limit effort="1" velocity="1" lower="-3.14159265359" upper="3.14159265359" />
     <joint_properties friction="0.0"/>
 </joint>
 
@@ -260,7 +261,7 @@
     <parent link="elbow" />
     <child link="wrist_carriage_2" />
     <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="1" lower="0" upper="6.28318530718" />
+    <limit effort="1" velocity="1" lower="-3.14159265359" upper="3.14159265359" />
     <joint_properties friction="0.0"/>
 </joint>
 
@@ -269,7 +270,7 @@
     <parent link="shoulder_lift" />
     <child link="elbow" />
     <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="1" lower="0" upper="6.28318530718" />
+    <limit effort="1" velocity="1" lower="-3.14159265359" upper="3.14159265359" />
     <joint_properties friction="0.0"/>
 </joint>
 
@@ -278,7 +279,7 @@
     <parent link="carriage_1" />
     <child link="shoulder_lift" />
     <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="1" lower="0" upper="6.28318530718" />
+    <limit effort="1" velocity="1" lower="-3.14159265359" upper="3.14159265359" />
     <joint_properties friction="0.0"/>
 </joint>
 
@@ -287,7 +288,7 @@
     <parent link="base" />
     <child link="carriage_1" />
     <axis xyz="0 0 1"/>
-    <limit effort="1" velocity="1" lower="0" upper="6.28318530718" />
+    <limit effort="1" velocity="1" lower="-0.52359877559" upper="0.52359877559" />
     <joint_properties friction="0.0"/>
 </joint>
 

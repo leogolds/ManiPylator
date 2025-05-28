@@ -3,6 +3,8 @@ controller/out
 
 # onshape-to-urdf config
 robots/config.json
+robots/measured/config.json
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

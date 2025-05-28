@@ -1,0 +1,264 @@
+<?xml version="1.0" ?>
+<!-- Generated using onshape-to-robot -->
+<!-- Onshape https://cad.onshape.com/documents/e413612a8832ec510847da3f/w/803fa7b6824abd888e7a7761/e/24c24df30b5c201f5853dea2 -->
+<robot name="measured">
+  <!-- Link base -->
+  <link name="base">
+    <inertial>
+      <origin xyz="-0.000112659 -4.53868e-05 0.0171358" rpy="0 0 0"/>
+      <mass value="0.428418"/>
+      <inertia ixx="0.000646025" ixy="-2.20013e-05" ixz="6.53648e-07" iyy="0.00068996" iyz="2.63542e-07" izz="0.00124063"/>
+    </inertial>
+    <!-- Part base -->
+    <visual>
+      <origin xyz="0.005 -5.81947e-17 0.278" rpy="1.5708 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://assets/base.stl"/>
+      </geometry>
+      <material name="base_material">
+        <color rgba="0.156863 0.156863 0.156863 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.005 -5.81947e-17 0.278" rpy="1.5708 -0 -1.5708"/>
+      <geometry>
+        <mesh filename="package://assets/base.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Link carriage_1 -->
+  <link name="carriage_1">
+    <inertial>
+      <origin xyz="-0.0231504 -6.84525e-06 -0.0519393" rpy="0 0 0"/>
+      <mass value="0.414823"/>
+      <inertia ixx="0.000867606" ixy="2.0976e-07" ixz="-5.33546e-05" iyy="0.000901772" iyz="-1.33965e-08" izz="0.00113027"/>
+    </inertial>
+    <!-- Part carriage_1 -->
+    <visual>
+      <origin xyz="0 -0.005 -0.24" rpy="-1.5708 -0 -2.1924e-85"/>
+      <geometry>
+        <mesh filename="package://assets/carriage_1.stl"/>
+      </geometry>
+      <material name="carriage_1_material">
+        <color rgba="0 0 1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.005 -0.24" rpy="-1.5708 -0 -2.1924e-85"/>
+      <geometry>
+        <mesh filename="package://assets/carriage_1.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Link shoulder_lift -->
+  <link name="shoulder_lift">
+    <inertial>
+      <origin xyz="0.0231503 6.83435e-06 -0.0519394" rpy="0 0 0"/>
+      <mass value="0.414824"/>
+      <inertia ixx="0.000867603" ixy="2.06209e-07" ixz="5.33551e-05" iyy="0.000901774" iyz="1.18811e-08" izz="0.00113027"/>
+    </inertial>
+    <!-- Part abs_pipe___3____measured -->
+    <visual>
+      <origin xyz="0.185 -0.00500247 0.0659991" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/abs_pipe___3____measured.stl"/>
+      </geometry>
+      <material name="abs_pipe___3____measured_material">
+        <color rgba="0.156863 0.156863 0.156863 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.185 -0.00500247 0.0659991" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/abs_pipe___3____measured.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part link_carriage -->
+    <visual>
+      <origin xyz="0.189925 -0.00500234 0.0660733" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/link_carriage.stl"/>
+      </geometry>
+      <material name="link_carriage_material">
+        <color rgba="0 0 1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.189925 -0.00500234 0.0660733" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/link_carriage.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part carriage_2 -->
+    <visual>
+      <origin xyz="0.185077 -0.0048453 0.0660774" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/carriage_2.stl"/>
+      </geometry>
+      <material name="carriage_2_material">
+        <color rgba="0 0 1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.185077 -0.0048453 0.0660774" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/carriage_2.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Link elbow -->
+  <link name="elbow">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+    <!-- Part knee_cap -->
+    <visual>
+      <origin xyz="-0.165 0.005 -0.065" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/knee_cap.stl"/>
+      </geometry>
+      <material name="knee_cap_material">
+        <color rgba="0.156863 0.156863 0.156863 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.165 0.005 -0.065" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/knee_cap.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part abs_pipe___2____measured -->
+    <visual>
+      <origin xyz="0.447 -0.005 -0.065" rpy="-1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/abs_pipe___2____measured.stl"/>
+      </geometry>
+      <material name="abs_pipe___2____measured_material">
+        <color rgba="0.156863 0.156863 0.156863 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.447 -0.005 -0.065" rpy="-1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/abs_pipe___2____measured.stl"/>
+      </geometry>
+    </collision>
+    <!-- Part wrist_carriage_1 -->
+    <visual>
+      <origin xyz="-0.212988 0.00499987 -0.065" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wrist_carriage_1.stl"/>
+      </geometry>
+      <material name="wrist_carriage_1_material">
+        <color rgba="0 0 1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.212988 0.00499987 -0.065" rpy="1.5708 1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wrist_carriage_1.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Link wrist_carriage_2 -->
+  <link name="wrist_carriage_2">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+    <!-- Part wrist_carriage_2 -->
+    <visual>
+      <origin xyz="-0.488487 -0.00499987 0.0409989" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wrist_carriage_2.stl"/>
+      </geometry>
+      <material name="wrist_carriage_2_material">
+        <color rgba="0 0 1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.488487 -0.00499987 0.0409989" rpy="-1.5708 -1.5708 0"/>
+      <geometry>
+        <mesh filename="package://assets/wrist_carriage_2.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Link wrist_carriage_3 -->
+  <link name="wrist_carriage_3">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1e-09"/>
+      <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+    </inertial>
+    <!-- Part wrist_carriage_3 -->
+    <visual>
+      <origin xyz="0.0895 -0.005 0.5295" rpy="-1.5708 2.2319e-32 -1.20586e-32"/>
+      <geometry>
+        <mesh filename="package://assets/wrist_carriage_3.stl"/>
+      </geometry>
+      <material name="wrist_carriage_3_material">
+        <color rgba="0 0 1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0895 -0.005 0.5295" rpy="-1.5708 2.2319e-32 -1.20586e-32"/>
+      <geometry>
+        <mesh filename="package://assets/wrist_carriage_3.stl"/>
+      </geometry>
+    </collision>
+  </link>
+  <!-- Link end_effector -->
+  <link name="end_effector"></link>
+  
+  <!-- Joint from wrist_carriage_3 to end_effector -->
+  <joint name="wrist_3" type="revolute">
+    <origin xyz="-0.04 -2.31674e-06 -0.048499" rpy="-1.5708 1.69864e-14 -1.5708"/>
+    <parent link="wrist_carriage_3"/>
+    <child link="end_effector"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10"/>
+  </joint>
+  <!-- Joint from wrist_carriage_2 to wrist_carriage_3 -->
+  <joint name="wrist_2" type="revolute">
+    <origin xyz="0.0400128 1.31418e-07 -0.0485011" rpy="4.93038e-32 -1.5708 0"/>
+    <parent link="wrist_carriage_2"/>
+    <child link="wrist_carriage_3"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+  <!-- Joint from elbow to wrist_carriage_2 -->
+  <joint name="wrist_1" type="revolute">
+    <origin xyz="0.275499 -4.64012e-11 -0.0250011" rpy="-3.14159 1.81665e-15 -5.9952e-14"/>
+    <parent link="elbow"/>
+    <child link="wrist_carriage_2"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+  <!-- Joint from shoulder_lift to elbow -->
+  <joint name="shoulder_bend" type="revolute">
+    <origin xyz="0.355003 -2.33792e-06 -4.03249e-06" rpy="-3.14159 -6.02188e-17 5.35683e-14"/>
+    <parent link="shoulder_lift"/>
+    <child link="elbow"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+  <!-- Joint from carriage_1 to shoulder_lift -->
+  <joint name="shoulder_lift" type="revolute">
+    <origin xyz="-0.065 -2.46924e-06 -0.0549991" rpy="-2.88427e-30 1.5708 0"/>
+    <parent link="carriage_1"/>
+    <child link="shoulder_lift"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+  <!-- Joint from base to carriage_1 -->
+  <joint name="shoulder_rotate" type="revolute">
+    <origin xyz="-7.46966e-06 -2.93707e-06 0.037" rpy="-3.14159 -1.38121e-42 -1.11022e-16"/>
+    <parent link="base"/>
+    <child link="carriage_1"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" velocity="10" lower="-3.141592653589793" upper="3.141592653589793"/>
+  </joint>
+</robot>
