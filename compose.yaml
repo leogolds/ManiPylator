@@ -3,7 +3,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: containers/Dockerfile
-    image: docker.io/leogold/manipylator:lab
+    image: leogold/manipylator:lab
     container_name: manipylator-lab
     entrypoint: jupyter lab --notebook-dir=/workspace --ip 0.0.0.0 --port 8888 --allow-root --NotebookApp.token='' --NotebookApp.password=''
     environment:
