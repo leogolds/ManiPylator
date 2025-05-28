@@ -15,3 +15,10 @@ def parametric_heart_2(t):
     ) / 11
 
     return np.stack((x, y, np.zeros(t.shape)), axis=1)
+
+
+def parametric_circle_1(t):
+    x = np.cos(t)
+    y = np.sin(t)
+
+    return np.stack((x, y, np.zeros(t.shape)), axis=1)

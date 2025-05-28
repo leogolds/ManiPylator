@@ -5,13 +5,16 @@ from datetime import datetime
 
 
 class MQTTConnection:
-    def __init__(self):
+    def __init__(self, host="localhost"):
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
         # self.client.connect("localhost", 1883, 60)
-        self.client.connect("192.168.1.8", 1883, 60)
+        # self.client.connect("192.168.1.8", 1883, 60)
+        # self.client.connect("192.168.1.48", 1883, 60)
+        self.client.connect(host, 1883, 60)
+
         self.client.loop_start()
 
     def run_gcode_script(self, script: str):
