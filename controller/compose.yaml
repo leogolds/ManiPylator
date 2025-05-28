@@ -113,7 +113,7 @@ services:
 
   ## simulavr
   simulavr:
-    image: simulavr
+    image: leogold/manipylator:simulavr
     restart: unless-stopped
     # build:
     #   context: ./simulavr
