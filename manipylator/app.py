@@ -9,6 +9,10 @@ import paho.mqtt.client as mqtt
 
 
 class Q(param.Parameterized):
+    """
+    Parameterized class representing the 6 joint angles (q1-q6) of a robot arm.
+    Each parameter is a float in radians, bounded between -pi and pi.
+    """
     q1 = param.Number(default=0, bounds=(-pi, pi))
     q2 = param.Number(default=0, bounds=(-pi, pi))
     q3 = param.Number(default=0, bounds=(-pi, pi))
@@ -18,7 +22,17 @@ class Q(param.Parameterized):
 
 
 class Q_UI:
-    def __init__(self, qparams: Q, title=None):
+    """
+    Panel UI for displaying the joint values of a Q instance in a 2x3 grid.
+    Updates automatically when the Q instance changes.
+    """
+    def __init__(self, qparams: Q, title: Optional[str] = None):
+        """
+        Initialize the UI for a Q instance.
+        Args:
+            qparams: The Q instance to display.
+            title: Optional title for the panel.
+        """
         self.qparams = qparams
         self.title = title
         self.wdgts = [
@@ -44,16 +58,29 @@ class Q_UI:
         self.qparams.param.watch(self._update_widgets, [f"q{i+1}" for i in range(6)])
         self._update_widgets(None)
 
-    def _update_widgets(self, event):
+    def _update_widgets(self, event) -> None:
+        """
+        Update the indicator widgets to reflect the current values in qparams.
+        """
         for i, wdgt in enumerate(self.wdgts):
             wdgt.value = getattr(self.qparams, f"q{i+1}")
 
-    def panel(self):
+    def panel(self) -> pn.Column:
+        """
+        Return the Panel layout for this Q_UI.
+        """
         return self._panel
 
 
 class StateViewer(param.Parameterized):
+    """
+    Main application UI for the robot arm controller.
+    Holds current and target pose, stepper status, and manages MQTT connection.
+    """
     stepper_energized = param.Boolean(default=False)
+    pose: Q
+    target_pose: Q
+    mq: Optional[mqtt.Client]
 
     def __init__(
         self,
@@ -62,6 +89,13 @@ class StateViewer(param.Parameterized):
         mq: Optional["mqtt.Client"] = None,
         **params
     ):
+        """
+        Initialize the StateViewer.
+        Args:
+            pose: Optional Q instance for current pose.
+            target_pose: Optional Q instance for target pose.
+            mq: Optional external MQTT client. If not provided, a new one is created.
+        """
         super().__init__(**params)
         self.pose = pose if pose is not None else Q()
         self.target_pose = target_pose if target_pose is not None else Q()
@@ -75,7 +109,10 @@ class StateViewer(param.Parameterized):
         else:
             self._init_mqtt()
 
-    def _init_mqtt(self):
+    def _init_mqtt(self) -> None:
+        """
+        Initialize and connect the internal MQTT client.
+        """
         self.mq = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)  # type: ignore
         self.mq.on_connect = self.on_connect
         self.mq.on_message = self.on_message
@@ -86,13 +123,19 @@ class StateViewer(param.Parameterized):
         except Exception as e:
             print(f"Failed to connect to MQTT: {e}")
 
-    def on_connect(self, client, userdata, flags, reason_code, properties=None):
+    def on_connect(self, client: mqtt.Client, userdata, flags, reason_code, properties=None) -> None:
+        """
+        MQTT callback for successful connection. Subscribes to relevant topics.
+        """
         print(f"Connected with result code {reason_code}")
         client.subscribe("manipylator/state")
         client.subscribe("manipylator/target")
         client.subscribe("manipylator/stepper_energized")
 
-    def on_message(self, client, userdata, msg):
+    def on_message(self, client: mqtt.Client, userdata, msg) -> None:
+        """
+        MQTT callback for incoming messages. Updates state based on topic.
+        """
         try:
             if msg.topic == "manipylator/state":
                 d = json.loads(msg.payload)
@@ -112,11 +155,13 @@ class StateViewer(param.Parameterized):
                 self.target_pose.q6 = d["q6"]
             elif msg.topic == "manipylator/stepper_energized":
                 self.stepper_energized = json.loads(msg.payload)
-                
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Error parsing message: {e}")
 
-    def view(self):
+    def view(self) -> pn.Column:
+        """
+        Return the main Panel layout for the app, including pose, target, and stepper status.
+        """
         stepper_status = "Energized" if self.stepper_energized is True else "De-energized"
         return pn.Column(
             self.pose_panel.panel(),
