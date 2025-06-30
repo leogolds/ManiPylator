@@ -1,0 +1,47 @@
+[project]
+name = "manipylator"
+version = "0.1.0"
+description = "Open-source robotics education platform"
+authors = [
+    { name = "Leo Goldstien", email = "leogoldstien@gmail.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+dependencies = [
+    "panel>=1.5.5",
+    "jupyterlab>=4.3.5",
+    "roboticstoolbox-python>=1.1.1",
+    "numpy<2",
+    "paho-mqtt>=2.1.0",
+    "hvplot>=0.11.3",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+# A regex preceded by ^/ will apply only to files and directories
+# in the root of the project.
+(
+  /(
+      \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | controller/out
+    | \.Trash-0
+  )/
+)
+'''
