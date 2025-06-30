@@ -1,7 +1,5 @@
 # Derived from Genesis Dockerfile: https://github.com/Genesis-Embodied-AI/Genesis/blob/2235ce0bf2c684b3aa05e16a6a6c4984ce783302/docker/Dockerfile
 
-ARG CUDA_VERSION=12.4
-
 # # ===============================================================
 # # Stage 1: Build LuisaRender
 # # ===============================================================
@@ -56,6 +54,7 @@ ARG CUDA_VERSION=12.4
 # ===============================================================
 # Stage 2: Runtime Environment
 # ===============================================================
+ARG CUDA_VERSION=12.4
 FROM pytorch/pytorch:2.5.1-cuda${CUDA_VERSION}-cudnn9-devel
 
 ARG PYTHON_VERSION=3.11
@@ -94,9 +93,6 @@ RUN git clone https://github.com/Genesis-Embodied-AI/Genesis.git && \
     pip install . && \
     pip install --no-cache-dir PyOpenGL==3.1.5
 
-
-
-
 # ------------------------ Motion planning -----------------------
 RUN PYTHON_MAJOR_MINOR=$(echo ${PYTHON_VERSION} | tr -d '.') && \
     wget https://github.com/ompl/ompl/releases/download/prerelease/ompl-1.6.0-cp${PYTHON_MAJOR_MINOR}-cp${PYTHON_MAJOR_MINOR}-manylinux_2_28_x86_64.whl && \
@@ -106,22 +102,5 @@ RUN PYTHON_MAJOR_MINOR=$(echo ${PYTHON_VERSION} | tr -d '.') && \
 # ----------------------- Personal deps ---------------------------
 ADD requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-
-# # -------------------- Surface Reconstruction --------------------
-# # Set the LD_LIBRARY_PATH directly in the environment
-# COPY --from=builder /workspace/Genesis/genesis/ext/ParticleMesher/ParticleMesherPy /opt/conda/lib/python3.1/site-packages/genesis/ext/ParticleMesher/ParticleMesherPy
-# ENV LD_LIBRARY_PATH=/opt/conda/lib/python3.1/site-packages/genesis/ext/ParticleMesher/ParticleMesherPy:$LD_LIBRARY_PATH
-
-# # --------------------- Ray Tracing Renderer ---------------------
-# # Copy LuisaRender build artifacts from the builder stage
-# COPY --from=builder /workspace/Genesis/genesis/ext/LuisaRender/build/bin /opt/conda/lib/python3.1/site-packages/genesis/ext/LuisaRender/build/bin
-# # fix GLIBCXX_3.4.30 not found
-# RUN cd /opt/conda/lib && \
-#     mv libstdc++.so.6 libstdc++.so.6.old && \
-#     ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6 libstdc++.so.6
-
-# COPY 10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
-# COPY nvidia_icd.json /usr/share/vulkan/icd.d/nvidia_icd.json
-# COPY nvidia_layers.json /etc/vulkan/implicit_layer.d/nvidia_layers.json
 
 ENTRYPOINT ["/bin/bash"]
