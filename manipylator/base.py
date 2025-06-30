@@ -1,9 +1,10 @@
-from pathlib import Path
-import json
 from dataclasses import dataclass
+import json
+from pathlib import Path
 from typing import Sequence
-import pandas as pd
+
 import roboticstoolbox as rtb
+
 from .comms import MQTTConnection
 
 
@@ -168,7 +169,7 @@ class VisualRobot(Robot):
 
 class HeadlessVisualRobot(Robot):
     def __init__(self, urdf_path: Path, mq_host=None):
-        raise NotImplemented("Fails to start")
+        raise NotImplementedError("Fails to start")
         try:
             super().__init__(urdf_path)
             self.visualizer = Visualizer(urdf_path, headless=True)

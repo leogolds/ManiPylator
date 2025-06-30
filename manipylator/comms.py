@@ -1,7 +1,7 @@
-import paho.mqtt.client as mqtt
 import json
 from time import sleep
-from datetime import datetime
+
+import paho.mqtt.client as mqtt
 
 
 class MQTTConnection:
@@ -46,5 +46,5 @@ if __name__ == "__main__":
     conn = MQTTConnection()
 
     for i in range(10):
-        conn.run_gcode_script(f"echo_numbers VALUE={1.5*i}")
+        conn.run_gcode_script(f"echo_numbers VALUE={1.5 * i}")
         sleep(1)

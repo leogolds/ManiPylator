@@ -3,7 +3,7 @@ import numpy as np
 
 def parametric_heart_1(t):
     x = np.sqrt(2) * np.sin(t) ** 3
-    y = -np.cos(t) ** 3 - np.cos(t) ** 2 + 2 * np.cos(t)
+    y = -(np.cos(t) ** 3) - np.cos(t) ** 2 + 2 * np.cos(t)
 
     return np.stack((x, y, np.zeros(t.shape)), axis=1)
 

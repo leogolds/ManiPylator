@@ -1,11 +1,11 @@
 # app.py
+import json
+from math import pi
+from typing import Optional
+
+import paho.mqtt.client as mqtt
 import panel as pn
 import param
-from math import pi
-import json
-import pandas as pd
-from typing import Optional
-import paho.mqtt.client as mqtt
 
 
 class Q(param.Parameterized):
@@ -13,6 +13,7 @@ class Q(param.Parameterized):
     Parameterized class representing the 6 joint angles (q1-q6) of a robot arm.
     Each parameter is a float in radians, bounded between -pi and pi.
     """
+
     q1 = param.Number(default=0, bounds=(-pi, pi))
     q2 = param.Number(default=0, bounds=(-pi, pi))
     q3 = param.Number(default=0, bounds=(-pi, pi))
@@ -26,6 +27,7 @@ class Q_UI:
     Panel UI for displaying the joint values of a Q instance in a 2x3 grid.
     Updates automatically when the Q instance changes.
     """
+
     def __init__(self, qparams: Q, title: Optional[str] = None):
         """
         Initialize the UI for a Q instance.
@@ -37,25 +39,22 @@ class Q_UI:
         self.title = title
         self.wdgts = [
             pn.indicators.Number(
-                name=f"Joint {i+1}",
+                name=f"Joint {i + 1}",
                 value=0,
-                format="{value:.3f}π",
+                format="{value:.3f} π",
                 font_size="min(6vw, 2em)",
-                sizing_mode="stretch_both"
+                sizing_mode="stretch_both",
             )
             for i in range(6)
         ]
-        self.gui = pn.GridBox(
-            *self.wdgts,
-            ncols=3,
-            sizing_mode="stretch_both"
-        )
+
+        self.gui = pn.GridBox(*self.wdgts, ncols=3, sizing_mode="stretch_both")
         self._panel = pn.Column(
             pn.pane.Markdown(f"### {self.title}" if self.title else ""),
             self.gui,
-            sizing_mode="stretch_width"
+            sizing_mode="stretch_width",
         )
-        self.qparams.param.watch(self._update_widgets, [f"q{i+1}" for i in range(6)])
+        self.qparams.param.watch(self._update_widgets, [f"q{i + 1}" for i in range(6)])
         self._update_widgets(None)
 
     def _update_widgets(self, event) -> None:
@@ -63,7 +62,7 @@ class Q_UI:
         Update the indicator widgets to reflect the current values in qparams.
         """
         for i, wdgt in enumerate(self.wdgts):
-            wdgt.value = getattr(self.qparams, f"q{i+1}")
+            wdgt.value = getattr(self.qparams, f"q{i + 1}")
 
     def panel(self) -> pn.Column:
         """
@@ -77,6 +76,7 @@ class StateViewer(param.Parameterized):
     Main application UI for the robot arm controller.
     Holds current and target pose, stepper status, and manages MQTT connection.
     """
+
     stepper_energized = param.Boolean(default=False)
     pose: Q
     target_pose: Q
@@ -87,7 +87,7 @@ class StateViewer(param.Parameterized):
         pose: Optional[Q] = None,
         target_pose: Optional[Q] = None,
         mq: Optional["mqtt.Client"] = None,
-        **params
+        **params,
     ):
         """
         Initialize the StateViewer.
@@ -96,6 +96,7 @@ class StateViewer(param.Parameterized):
             target_pose: Optional Q instance for target pose.
             mq: Optional external MQTT client. If not provided, a new one is created.
         """
+
         super().__init__(**params)
         self.pose = pose if pose is not None else Q()
         self.target_pose = target_pose if target_pose is not None else Q()
@@ -123,7 +124,9 @@ class StateViewer(param.Parameterized):
         except Exception as e:
             print(f"Failed to connect to MQTT: {e}")
 
-    def on_connect(self, client: mqtt.Client, userdata, flags, reason_code, properties=None) -> None:
+    def on_connect(
+        self, client: mqtt.Client, userdata, flags, reason_code, properties=None
+    ) -> None:
         """
         MQTT callback for successful connection. Subscribes to relevant topics.
         """
@@ -162,18 +165,21 @@ class StateViewer(param.Parameterized):
         """
         Return the main Panel layout for the app, including pose, target, and stepper status.
         """
-        stepper_status = "Energized" if self.stepper_energized is True else "De-energized"
+        stepper_status = (
+            "Energized" if self.stepper_energized is True else "De-energized"
+        )
         return pn.Column(
             self.pose_panel.panel(),
             self.target_panel.panel(),
             pn.pane.Markdown(f"### Stepper Status: {stepper_status}"),
-            sizing_mode="stretch_width"
+            sizing_mode="stretch_width",
         )
+
 
 s = StateViewer()
 
 
 # Create the Panel template
 template = pn.template.BootstrapTemplate(title="Robot Arm Control Panel")
-template.main.append(s.view)
+template.main.append(s.view)  # type: ignore
 template.servable()
