@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     wget \
+    unzip \
     bash-completion \
     libgl1 \
     libgl1-mesa-glx \
