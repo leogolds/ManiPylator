@@ -130,7 +130,7 @@ def render_robot_from_template(robot_path):
         robot_path (str or Path): Path to directory containing robot.urdf.j2 template and assets folder
 
     Yields:
-        str: Path to temporary file containing the rendered URDF
+        Path: Path to temporary file containing the rendered URDF
 
     Example:
         with render_robot_from_template("robots/empiric") as robot_urdf:
@@ -145,5 +145,5 @@ def render_robot_from_template(robot_path):
         # Render the robot URDF to the temporary file
         render_robot_from_path(robot_path, output_path=temp_file.name)
 
-        # Yield the path to the temporary file
-        yield temp_file.name
+        # Yield the path to the temporary file as a Path object
+        yield Path(temp_file.name)
