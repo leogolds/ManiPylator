@@ -13,7 +13,7 @@
     <visual>
       <origin xyz="0.005 -5.81947e-17 0.278" rpy="1.5708 -0 -1.5708"/>
       <geometry>
-        <mesh filename="package://assets/base.stl"/>
+        <mesh filename="{{ models_dir }}/base.stl"/>
       </geometry>
       <material name="base_material">
         <color rgba="0.156863 0.156863 0.156863 1.0"/>
@@ -22,7 +22,7 @@
     <collision>
       <origin xyz="0.005 -5.81947e-17 0.278" rpy="1.5708 -0 -1.5708"/>
       <geometry>
-        <mesh filename="package://assets/base.stl"/>
+        <mesh filename="{{ models_dir }}/base.stl"/>
       </geometry>
     </collision>
   </link>
@@ -37,7 +37,7 @@
     <visual>
       <origin xyz="0 -0.005 -0.24" rpy="-1.5708 -0 -2.1924e-85"/>
       <geometry>
-        <mesh filename="package://assets/carriage_1.stl"/>
+        <mesh filename="{{ models_dir }}/carriage_1.stl"/>
       </geometry>
       <material name="carriage_1_material">
         <color rgba="0 0 1 1.0"/>
@@ -46,7 +46,7 @@
     <collision>
       <origin xyz="0 -0.005 -0.24" rpy="-1.5708 -0 -2.1924e-85"/>
       <geometry>
-        <mesh filename="package://assets/carriage_1.stl"/>
+        <mesh filename="{{ models_dir }}/carriage_1.stl"/>
       </geometry>
     </collision>
   </link>
@@ -61,7 +61,7 @@
     <visual>
       <origin xyz="0.185 -0.00500247 0.0659991" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/abs_pipe___3____measured.stl"/>
+        <mesh filename="{{ models_dir }}/abs_pipe___3____measured.stl"/>
       </geometry>
       <material name="abs_pipe___3____measured_material">
         <color rgba="0.156863 0.156863 0.156863 1.0"/>
@@ -70,14 +70,14 @@
     <collision>
       <origin xyz="0.185 -0.00500247 0.0659991" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/abs_pipe___3____measured.stl"/>
+        <mesh filename="{{ models_dir }}/abs_pipe___3____measured.stl"/>
       </geometry>
     </collision>
     <!-- Part link_carriage -->
     <visual>
       <origin xyz="0.189925 -0.00500234 0.0660733" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/link_carriage.stl"/>
+        <mesh filename="{{ models_dir }}/link_carriage.stl"/>
       </geometry>
       <material name="link_carriage_material">
         <color rgba="0 0 1 1.0"/>
@@ -86,14 +86,14 @@
     <collision>
       <origin xyz="0.189925 -0.00500234 0.0660733" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/link_carriage.stl"/>
+        <mesh filename="{{ models_dir }}/link_carriage.stl"/>
       </geometry>
     </collision>
     <!-- Part carriage_2 -->
     <visual>
       <origin xyz="0.185077 -0.0048453 0.0660774" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/carriage_2.stl"/>
+        <mesh filename="{{ models_dir }}/carriage_2.stl"/>
       </geometry>
       <material name="carriage_2_material">
         <color rgba="0 0 1 1.0"/>
@@ -102,7 +102,7 @@
     <collision>
       <origin xyz="0.185077 -0.0048453 0.0660774" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/carriage_2.stl"/>
+        <mesh filename="{{ models_dir }}/carriage_2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -117,7 +117,7 @@
     <visual>
       <origin xyz="-0.165 0.005 -0.065" rpy="1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/knee_cap.stl"/>
+        <mesh filename="{{ models_dir }}/knee_cap.stl"/>
       </geometry>
       <material name="knee_cap_material">
         <color rgba="0.156863 0.156863 0.156863 1.0"/>
@@ -126,14 +126,14 @@
     <collision>
       <origin xyz="-0.165 0.005 -0.065" rpy="1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/knee_cap.stl"/>
+        <mesh filename="{{ models_dir }}/knee_cap.stl"/>
       </geometry>
     </collision>
     <!-- Part abs_pipe___2____measured -->
     <visual>
       <origin xyz="0.447 -0.005 -0.065" rpy="-1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/abs_pipe___2____measured.stl"/>
+        <mesh filename="{{ models_dir }}/abs_pipe___2____measured.stl"/>
       </geometry>
       <material name="abs_pipe___2____measured_material">
         <color rgba="0.156863 0.156863 0.156863 1.0"/>
@@ -142,14 +142,14 @@
     <collision>
       <origin xyz="0.447 -0.005 -0.065" rpy="-1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/abs_pipe___2____measured.stl"/>
+        <mesh filename="{{ models_dir }}/abs_pipe___2____measured.stl"/>
       </geometry>
     </collision>
     <!-- Part wrist_carriage_1 -->
     <visual>
       <origin xyz="-0.212988 0.00499987 -0.065" rpy="1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/wrist_carriage_1.stl"/>
+        <mesh filename="{{ models_dir }}/wrist_carriage_1.stl"/>
       </geometry>
       <material name="wrist_carriage_1_material">
         <color rgba="0 0 1 1.0"/>
@@ -158,7 +158,7 @@
     <collision>
       <origin xyz="-0.212988 0.00499987 -0.065" rpy="1.5708 1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/wrist_carriage_1.stl"/>
+        <mesh filename="{{ models_dir }}/wrist_carriage_1.stl"/>
       </geometry>
     </collision>
   </link>
@@ -173,7 +173,7 @@
     <visual>
       <origin xyz="-0.488487 -0.00499987 0.0409989" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/wrist_carriage_2.stl"/>
+        <mesh filename="{{ models_dir }}/wrist_carriage_2.stl"/>
       </geometry>
       <material name="wrist_carriage_2_material">
         <color rgba="0 0 1 1.0"/>
@@ -182,7 +182,7 @@
     <collision>
       <origin xyz="-0.488487 -0.00499987 0.0409989" rpy="-1.5708 -1.5708 0"/>
       <geometry>
-        <mesh filename="package://assets/wrist_carriage_2.stl"/>
+        <mesh filename="{{ models_dir }}/wrist_carriage_2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -197,7 +197,7 @@
     <visual>
       <origin xyz="0.0895 -0.005 0.5295" rpy="-1.5708 2.2319e-32 -1.20586e-32"/>
       <geometry>
-        <mesh filename="package://assets/wrist_carriage_3.stl"/>
+        <mesh filename="{{ models_dir }}/wrist_carriage_3.stl"/>
       </geometry>
       <material name="wrist_carriage_3_material">
         <color rgba="0 0 1 1.0"/>
@@ -206,7 +206,7 @@
     <collision>
       <origin xyz="0.0895 -0.005 0.5295" rpy="-1.5708 2.2319e-32 -1.20586e-32"/>
       <geometry>
-        <mesh filename="package://assets/wrist_carriage_3.stl"/>
+        <mesh filename="{{ models_dir }}/wrist_carriage_3.stl"/>
       </geometry>
     </collision>
   </link>

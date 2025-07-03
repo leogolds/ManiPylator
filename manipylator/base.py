@@ -144,7 +144,7 @@ class MQVisualizer(Visualizer):
 class Robot:
     def __init__(self, urdf_path: Path, mq_host=None):
         try:
-            self.model = rtb.Robot.URDF(urdf_path)
+            self.model = rtb.Robot.URDF(urdf_path.absolute())
             if mq_host:
                 self.mq = MQTTConnection(host=mq_host)
             else:
