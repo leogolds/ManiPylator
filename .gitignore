@@ -233,3 +233,4 @@ venv.bak/
 robots/measured/
 *.pyc
 **/out
+containers/controller/out/*
