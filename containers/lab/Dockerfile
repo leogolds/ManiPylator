@@ -57,7 +57,6 @@
 ARG CUDA_VERSION=12.4
 FROM pytorch/pytorch:2.5.1-cuda${CUDA_VERSION}-cudnn9-devel
 
-ARG PYTHON_VERSION=3.11
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES=all
 
@@ -94,6 +93,7 @@ RUN git clone https://github.com/Genesis-Embodied-AI/Genesis.git && \
     pip install --no-cache-dir PyOpenGL==3.1.5
 
 # ------------------------ Motion planning -----------------------
+ARG PYTHON_VERSION=3.11
 RUN PYTHON_MAJOR_MINOR=$(echo ${PYTHON_VERSION} | tr -d '.') && \
     wget https://github.com/ompl/ompl/releases/download/prerelease/ompl-1.6.0-cp${PYTHON_MAJOR_MINOR}-cp${PYTHON_MAJOR_MINOR}-manylinux_2_28_x86_64.whl && \
     pip install ompl-1.6.0-cp${PYTHON_MAJOR_MINOR}-cp${PYTHON_MAJOR_MINOR}-manylinux_2_28_x86_64.whl && \

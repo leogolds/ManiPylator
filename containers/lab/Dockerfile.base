@@ -1,0 +1,35 @@
+# Derived from Genesis Dockerfile: https://github.com/Genesis-Embodied-AI/Genesis/blob/2235ce0bf2c684b3aa05e16a6a6c4984ce783302/docker/Dockerfile
+
+ARG CUDA_VERSION=12.4
+FROM pytorch/pytorch:2.5.1-cuda${CUDA_VERSION}-cudnn9-devel
+
+ARG PYTHON_VERSION=3.11
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NVIDIA_DRIVER_CAPABILITIES=all
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tmux \
+    git \
+    curl \
+    wget \
+    unzip \
+    bash-completion \
+    libgl1 \
+    libgl1-mesa-glx \
+    libegl-dev \
+    libegl1 \
+    libxrender1 \
+    libglib2.0-0 \
+    ffmpeg \
+    libgtk2.0-dev \
+    pkg-config \
+    libvulkan-dev \
+    libgles2 \
+    libglvnd0 \
+    libglx0 \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+

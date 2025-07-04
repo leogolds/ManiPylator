@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "manipylator"
+version = "0.2.0"
+description = "3D printed 6DOF robotic manipulator powered by Python"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Leo Goldstien"},
+]
+keywords = ["robotics", "6dof", "manipulator", "klipper", "genesis"]
+dependencies = [
+    "panel>=1.5.5",
+    "jupyterlab>=4.3.5",
+    "roboticstoolbox-python>=1.1.1",
+    "numpy>=1.24.0,<2.0",
+    "scipy>=1.10.0",
+    "paho-mqtt>=2.1.0",
+    "hvplot>=0.11.3",
+    "torch==2.5.1",
+    "open3d==0.19.0",
+    "PyOpenGL==3.1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[tool.hatchling.build.targets.wheel]
+packages = ["manipylator"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0", 
+]
+
+[tool.uv.sources]
+genesis-world = { git = "https://github.com/Genesis-Embodied-AI/Genesis.git", rev = "34115dcea885cdf184f68b4ba80bdd8" }
