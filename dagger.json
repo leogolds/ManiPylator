@@ -1,8 +1,8 @@
 {
-    "name": "manipylator",
-    "engineVersion": "v0.18.12",
-    "sdk": {
-        "source": "python"
-    },
-    "source": ".dagger"
+  "name": "manipylator",
+  "engineVersion": "v0.18.12",
+  "sdk": {
+    "source": "python"
+  },
+  "source": ".dagger"
 }

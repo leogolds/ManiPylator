@@ -226,8 +226,6 @@ venv.bak/
 *.swp
 *.swo
 
-# Dagger
-.dagger/
 
 # Project specific
 robots/measured/
