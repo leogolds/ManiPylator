@@ -136,6 +136,42 @@ class Manipylator:
         return container
 
     @function
+    async def runtime_container(
+        self,
+        source: Annotated[dagger.Directory, "Source directory"],
+        cuda_version: Annotated[str, "CUDA version to use"] = "12.4",
+        registry_username: Annotated[
+            str, "Container registry username (optional)"
+        ] = "",
+        registry_password: Annotated[
+            dagger.Secret | None, "Container registry password (optional)"
+        ] = None,
+    ) -> dagger.Container:
+        """Returns a runtime container with PyTorch CUDA runtime, optionally with conda environment"""
+        container = dag.container()
+
+        # Authenticate with registry if credentials are provided
+        if registry_username and registry_password:
+            container = container.with_registry_auth(
+                address="docker.io",
+                username=registry_username,
+                secret=registry_password,
+            )
+
+        container = container.from_(
+            f"pytorch/pytorch:2.5.1-cuda{cuda_version}-cudnn9-runtime"
+        )
+
+        dev_container = await self.dev_container(
+            source, registry_username, registry_password
+        )
+        conda_env = dev_container.directory("/opt/conda")
+
+        container = container.with_mounted_directory("/opt/conda", conda_env)
+
+        return container
+
+    @function
     async def build_package(
         self,
         source: Annotated[dagger.Directory, "Source directory"],
@@ -160,7 +196,7 @@ class Manipylator:
         port: Annotated[int, "Port to expose Jupyter on"] = 8888,
     ) -> dagger.Service:
         """Start a Jupyter Lab server"""
-        container = self.dev_container(source)
+        container = await self.dev_container(source)
 
         return (
             container.with_exposed_port(port)
@@ -186,7 +222,7 @@ class Manipylator:
         port: Annotated[int, "Port to expose the app on"] = 5006,
     ) -> dagger.Service:
         """Run the ManiPylator application"""
-        container = self.dev_container(source)
+        container = await self.dev_container(source)
 
         return (
             container.with_exposed_port(port)
