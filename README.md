@@ -3,7 +3,7 @@
 
 3D printed 6DOF robotic manipulator powered by your favorite snake based programming language
 
-## Quick Start with Dagger
+## Local Development
 
 This project uses [Dagger](https://dagger.io/) for CI/CD and development workflows.
 
@@ -14,6 +14,32 @@ This project uses [Dagger](https://dagger.io/) for CI/CD and development workflo
 curl -fsSL https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION=0.18.12 BIN_DIR=$HOME/.local/bin sh
 ```
 - Docker
+
+### Deploying daggger-engine
+
+For optimal local development experience, we provide a custom Dagger engine configuration with optimized caching and garbage collection settings. See [`containers/dagger-engine/README.md`](containers/dagger-engine/README.md) for detailed instructions on:
+
+- Setting up custom engine configuration for faster builds
+- Managing cache dependencies and disk usage
+- Configuring garbage collection for your development environment
+- Troubleshooting common engine issues
+
+The configuration includes optimized settings for:
+- **Cache Management**: 35GB max cache with intelligent garbage collection
+- **Disk Space**: Reserved space protection and automatic cleanup
+- **Build Performance**: Optimized builds with extensive caching
+
+#### Quick Engine Setup
+```bash
+# Reload Dagger engine with custom configuration
+cd containers/dagger-engine
+./reload-dagger-engine.sh
+
+# Set environment variable to use the custom engine
+export _EXPERIMENTAL_DAGGER_RUNNER_HOST=docker-container://dagger-engine-custom
+```
+
+This script automatically stops any existing Dagger engines, applies your custom configuration, and starts a new engine with custom caching settings for faster builds. The environment variable tells the Dagger CLI to connect to your custom engine instead of the default one.
 
 
 ### Available Commands
