@@ -27,4 +27,4 @@ xhost +local:root # Allow the container to access the display
 
 docker compose up lab -d
 ```
-Now go to [http://localhost:8888/00-start-here.ipynb] to try out a few basics
+Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/00-start-here.ipynb) to try out a few basics

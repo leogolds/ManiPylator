@@ -11,6 +11,7 @@ __author__ = "Leo Goldstien"
 from .base import (
     Robot, 
     VisualRobot, 
+    HeadlessVisualRobot,
     MovementCommand, 
     MovementSequence,
     Visualizer,
@@ -22,6 +23,7 @@ from .comms import MQTTConnection
 __all__ = [
     "Robot",
     "VisualRobot",
+    "HeadlessVisualRobot",
     "MovementCommand",
     "MovementSequence", 
     "Visualizer",
