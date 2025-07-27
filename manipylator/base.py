@@ -6,6 +6,7 @@ from typing import Sequence
 import roboticstoolbox as rtb
 
 from .comms import MQTTConnection
+from manipylator.utils import quaternion_to_rotation_matrix
 
 
 @dataclass(frozen=True)
@@ -158,20 +159,74 @@ class Robot:
             self.mq.run_gcode_script(command.gcode)
 
 
-class VisualRobot(Robot):
-    def __init__(self, urdf_path: Path, mq_host=None):
+class SimulatedRobot(Robot):
+    def __init__(self, urdf_path: Path, mq_host=None, headless=False):
         try:
             super().__init__(urdf_path, mq_host=mq_host)
-            self.visualizer = Visualizer(urdf_path)
+            self.visualizer = Visualizer(urdf_path, headless=headless)
         except Exception as e:
             raise e
 
+    def step_to_pose(self, pose, link_name="end_effector"):
+        """
+        Step the robot to a new pose and return the transformation matrix.
 
-class HeadlessVisualRobot(Robot):
+        Args:
+            pose: List or tuple of joint angles [q1, q2, q3, q4, q5, q6]
+            link_name: Name of the link to get transformation for (default: 'end_effector')
+
+        Returns:
+            tuple: (translation, rotation_matrix) where:
+                - translation: 3D position vector
+                - rotation_matrix: 3x3 rotation matrix
+        """
+        # Set the robot's joint positions
+        self.visualizer.robot.set_dofs_position(pose)
+
+        # Step the simulation
+        self.visualizer.scene.step()
+
+        # Get the specified link
+        link = self.visualizer.robot.get_link(link_name)
+
+        # Get position and orientation
+        position = link.get_pos()
+        quat = link.get_quat()  # Returns quaternion
+
+        return position, quaternion_to_rotation_matrix(quat)
+
+    def homogeneous_transform(self, link_name="end_effector"):
+        """
+        Get the full 4x4 homogeneous transformation matrix for a specific link.
+
+        Args:
+            link_name: Name of the link to get transformation for (default: 'end_effector')
+
+        Returns:
+            numpy.ndarray: 4x4 homogeneous transformation matrix
+        """
+        # Use step_to_pose to get position and rotation matrix using class methods
+        # Get the specified link
+        link = self.visualizer.robot.get_link(link_name)
+        # Get position and orientation
+        position = link.get_pos()
+        quat = link.get_quat()  # Returns quaternion
+        rotation_matrix = quaternion_to_rotation_matrix(quat)
+
+        # Create 4x4 homogeneous transformation matrix
+        import numpy as np
+
+        transform = np.eye(4)
+        transform[:3, :3] = rotation_matrix
+        transform[:3, 3] = position
+
+        return transform
+
+
+class HeadlessSimulatedRobot(SimulatedRobot):
     def __init__(self, urdf_path: Path, mq_host=None):
-        raise NotImplementedError("Fails to start")
+        #        raise NotImplementedError("Fails to start")
         try:
-            super().__init__(urdf_path)
-            self.visualizer = Visualizer(urdf_path, headless=True)
+            super().__init__(urdf_path, headless=True)
         except Exception as e:
             raise e

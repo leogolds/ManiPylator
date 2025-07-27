@@ -226,10 +226,10 @@ venv.bak/
 *.swp
 *.swo
 
-# Dagger
-.dagger/
 
 # Project specific
 robots/measured/
 *.pyc
 **/out
+*.bak2
+*.bak

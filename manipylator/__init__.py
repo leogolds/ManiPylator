@@ -9,9 +9,10 @@ __version__ = "0.2.0"
 __author__ = "Leo Goldstien"
 
 from .base import (
-    Robot, 
-    VisualRobot, 
-    MovementCommand, 
+    Robot,
+    SimulatedRobot,
+    HeadlessSimulatedRobot,
+    MovementCommand,
     MovementSequence,
     Visualizer,
     MQVisualizer,
@@ -21,9 +22,10 @@ from .comms import MQTTConnection
 # Make commonly used classes available at package level
 __all__ = [
     "Robot",
-    "VisualRobot",
+    "SimulatedRobot",
+    "HeadlessSimulatedRobot",
     "MovementCommand",
-    "MovementSequence", 
+    "MovementSequence",
     "Visualizer",
     "MQVisualizer",
     "MQTTConnection",

@@ -1,0 +1,10 @@
+{
+    "gc": {
+        "enabled": true,
+        "maxUsedSpace": "35GB",
+        "reservedSpace": "5GB",
+        "minFreeSpace": "5GB",
+        "sweepSize": "35%"
+    },
+    "logLevel": "error"
+}

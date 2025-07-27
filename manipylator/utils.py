@@ -2,6 +2,7 @@ import numpy as np
 import os
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from scipy.spatial.transform import Rotation as R
 
 
 def parametric_heart_1(t):
@@ -118,7 +119,6 @@ def render_robot_from_path(robot_path, output_path=None):
 
 from contextlib import contextmanager
 import tempfile
-from manipylator import VisualRobot
 
 
 @contextmanager
@@ -147,3 +147,18 @@ def render_robot_from_template(robot_path):
 
         # Yield the path to the temporary file as a Path object
         yield Path(temp_file.name)
+
+
+def quaternion_to_rotation_matrix(quat):
+    """
+    Convert a Genesis quaternion (qw, qx, qy, qz) to a 3x3 rotation matrix.
+    Handles PyTorch tensors (including CUDA) and numpy arrays/lists.
+    """
+    # Handle PyTorch tensors (including CUDA) without explicit import
+    if hasattr(quat, "is_cuda") and quat.is_cuda:
+        quat = quat.cpu()
+
+    qw, qx, qy, qz = quat
+    quat_xyzw = [qx, qy, qz, qw]
+    rotation = R.from_quat(quat_xyzw)
+    return rotation.as_matrix()
