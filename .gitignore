@@ -231,3 +231,5 @@ venv.bak/
 robots/measured/
 *.pyc
 **/out
+*.bak2
+*.bak
