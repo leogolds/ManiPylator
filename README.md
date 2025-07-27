@@ -14,7 +14,7 @@ This project, in part, came about as an attempt to build a 3D printed, 6DOF robo
 ## Where should I go?
 
 - **I know nothing of robotics but excited to learn**: many paths lead here, but which is best for you? See the RESOURCES.md file for some high quality introductory robotics resources. For those seeking a narrative introduction, check out [Part 1: Where to start?](https://hackaday.io/project/197770-manipylator/log/232565-manipilator-part-1-where-to-start) and [Part 2: Simulation & Motion Planning](https://hackaday.io/project/197770-manipylator/log/240946-manipylator-part-2-simulation-motion-planning)
-- **I'm a student/researcher/teacher**: experimentation lies at the core of learning. This project tries to provide access to state of the art robotics software in a user-friendly, no-nonesense package. See the the [Getting Started guide](docs/GETTING_STARTED.md), or take a look at the included notebooks to get a feel for what's available. 
+- **I'm a student/researcher/teacher**: experimentation is a cornerstone of learning. This project tries to provide access to state of the art robotics software in a user-friendly, no-nonesense package. See the the [Getting Started guide](docs/GETTING_STARTED.md), or take a look at the included notebooks to get a feel for what's available. 
 - **I'm a robotocist and would like to help with developemnt**: check out the [CONTRIBUTING.md](CONTRIBUTING.md) file or open an issue. To learn how to build the project locally check out out [Local Development instructions](docs/LOCAL_DEVELOPMENT.md)
 - **I'm just curious. How does this work?**: Please check out our [Architecture](docs/ARCHITECTURE.md) outline to understand how things are put together.
 
