@@ -162,3 +162,56 @@ def quaternion_to_rotation_matrix(quat):
     quat_xyzw = [qx, qy, qz, qw]
     rotation = R.from_quat(quat_xyzw)
     return rotation.as_matrix()
+
+
+def print_collapsible(
+    obj, max_length=500, title="Large Output", background_color="#f6f8fa"
+):
+    """
+    Display an object with smart handling of long outputs for GitHub-friendly viewing.
+
+    If the string representation is longer than max_length, it wraps the output
+    in a GitHub-compatible collapsed section using Markdown syntax.
+
+    Args:
+        obj: Object to display
+        max_length (int): Maximum length before wrapping in collapsible section
+        title (str): Title for the collapsible section
+        background_color (str): CSS color for the output background (not used in Markdown)
+
+    Example:
+        # In a Jupyter notebook
+        from manipylator.utils import print_collapsible
+
+        # This will automatically wrap long outputs
+        print_collapsible(your_long_symbolic_expression)
+
+        # Customize the appearance
+        print_collapsible(long_output, max_length=300, title="Detailed Results")
+    """
+    try:
+        from IPython.display import display, Markdown
+    except ImportError:
+        # Fallback if not in IPython environment
+        print(obj)
+        return
+
+    obj_str = str(obj)
+
+    if len(obj_str) > max_length:
+        # Create GitHub-compatible collapsed section using Markdown
+        # Based on: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections
+        markdown_output = f"""<details>
+
+<summary>**{title}** (click to expand - {len(obj_str)} characters)</summary>
+
+```python
+{obj_str}
+```
+
+</details>"""
+
+        display(Markdown(markdown_output))
+    else:
+        # For short outputs, display normally
+        display(obj)
