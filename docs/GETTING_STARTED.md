@@ -60,7 +60,7 @@ print(f"End effector position: {translation}")
 ## Learning Paths
 
 ### For Beginners
-1. **Start Here**: `00-start-here.ipynb` - Basic concepts and setup
+1. **Start Here**: `00-start-here.ipynb` - Basic concepts and sanity check
 2. **Visual Simulation**: `20-simulation.ipynb` - See your robot move in 3D
 3. **Symbolic Math**: `10-symbolic-manipulation.ipynb` - Learn the math behind robotics
 
