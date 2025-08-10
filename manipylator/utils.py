@@ -162,3 +162,53 @@ def quaternion_to_rotation_matrix(quat):
     quat_xyzw = [qx, qy, qz, qw]
     rotation = R.from_quat(quat_xyzw)
     return rotation.as_matrix()
+
+
+def print_collapsible(obj, max_length=500, title="Output", background_color="#f6f8fa"):
+    """
+    Display an object with smart handling of long outputs for GitHub-friendly viewing.
+
+    If the string representation is longer than max_length, it wraps the output
+    in an HTML collapsible section that works well on GitHub.
+
+    Args:
+        obj: Object to display
+        max_length (int): Maximum length before wrapping in collapsible section
+        title (str): Title for the collapsible section
+        background_color (str): CSS color for the output background
+
+    Example:
+        # In a Jupyter notebook
+        from manipylator.utils import print_collapsible
+
+        # This will automatically wrap long outputs
+        print_collapsible(your_long_symbolic_expression)
+
+        # Customize the appearance
+        print_collapsible(long_output, max_length=300, title="Detailed Results")
+    """
+    try:
+        from IPython.display import display, HTML
+    except ImportError:
+        # Fallback if not in IPython environment
+        print(obj)
+        return
+
+    obj_str = str(obj)
+
+    if len(obj_str) > max_length:
+        # Create collapsible HTML section for long outputs
+        html_output = f"""
+        <details style="margin: 10px 0; border: 1px solid #e1e4e8; border-radius: 6px;">
+            <summary style="padding: 10px; background-color: {background_color}; cursor: pointer; font-weight: bold; border-bottom: 1px solid #e1e4e8;">
+                {title} (click to expand - {len(obj_str)} characters)
+            </summary>
+            <pre style="margin: 0; padding: 15px; background-color: {background_color}; overflow-x: auto; font-size: 12px; line-height: 1.4; border-top: 1px solid #e1e4e8;">
+            {obj_str}
+            </pre>
+        </details>
+        """
+        display(HTML(html_output))
+    else:
+        # For short outputs, display normally
+        display(obj)
