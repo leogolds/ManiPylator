@@ -169,13 +169,13 @@ def print_collapsible(obj, max_length=500, title="Output", background_color="#f6
     Display an object with smart handling of long outputs for GitHub-friendly viewing.
 
     If the string representation is longer than max_length, it wraps the output
-    in an HTML collapsible section that works well on GitHub.
+    in a GitHub-compatible collapsed section using Markdown syntax.
 
     Args:
         obj: Object to display
         max_length (int): Maximum length before wrapping in collapsible section
         title (str): Title for the collapsible section
-        background_color (str): CSS color for the output background
+        background_color (str): CSS color for the output background (not used in Markdown)
 
     Example:
         # In a Jupyter notebook
@@ -188,7 +188,7 @@ def print_collapsible(obj, max_length=500, title="Output", background_color="#f6
         print_collapsible(long_output, max_length=300, title="Detailed Results")
     """
     try:
-        from IPython.display import display, HTML
+        from IPython.display import display, Markdown
     except ImportError:
         # Fallback if not in IPython environment
         print(obj)
@@ -197,18 +197,19 @@ def print_collapsible(obj, max_length=500, title="Output", background_color="#f6
     obj_str = str(obj)
 
     if len(obj_str) > max_length:
-        # Create collapsible HTML section for long outputs
-        html_output = f"""
-        <details style="margin: 10px 0; border: 1px solid #e1e4e8; border-radius: 6px;">
-            <summary style="padding: 10px; background-color: {background_color}; cursor: pointer; font-weight: bold; border-bottom: 1px solid #e1e4e8;">
-                {title} (click to expand - {len(obj_str)} characters)
-            </summary>
-            <pre style="margin: 0; padding: 15px; background-color: {background_color}; overflow-x: auto; font-size: 12px; line-height: 1.4; border-top: 1px solid #e1e4e8;">
-            {obj_str}
-            </pre>
-        </details>
-        """
-        display(HTML(html_output))
+        # Create GitHub-compatible collapsed section using Markdown
+        # Based on: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections
+        markdown_output = f"""<details>
+
+<summary>{title} (click to expand - {len(obj_str)} characters)</summary>
+
+```python
+{obj_str}
+```
+
+</details>"""
+
+        display(Markdown(markdown_output))
     else:
         # For short outputs, display normally
         display(obj)
