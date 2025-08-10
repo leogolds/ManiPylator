@@ -164,7 +164,9 @@ def quaternion_to_rotation_matrix(quat):
     return rotation.as_matrix()
 
 
-def print_collapsible(obj, max_length=500, title="Output", background_color="#f6f8fa"):
+def print_collapsible(
+    obj, max_length=500, title="Large Output", background_color="#f6f8fa"
+):
     """
     Display an object with smart handling of long outputs for GitHub-friendly viewing.
 
@@ -201,7 +203,7 @@ def print_collapsible(obj, max_length=500, title="Output", background_color="#f6
         # Based on: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections
         markdown_output = f"""<details>
 
-<summary>{title} (click to expand - {len(obj_str)} characters)</summary>
+<summary>**{title}** (click to expand - {len(obj_str)} characters)</summary>
 
 ```python
 {obj_str}
