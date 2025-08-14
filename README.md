@@ -33,6 +33,8 @@ Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/0
 
 This repository includes two excellent tutorial collections that provide comprehensive coverage of robotics fundamentals:
 
+**Textbook Reference**: These tutorials complement the comprehensive robotics textbook [*Robotics, Vision and Control*](https://petercorke.com/wordpress/books/robotics-vision-control/) by Peter Corke. For more details, visit [Peter Corke's website](https://petercorke.com/).
+
 ### 1. Differential Kinematics Tutorial (DKT)
 **Source**: [jhavl/dkt](https://github.com/jhavl/dkt) by Jesse Haviland and Peter Corke
 
