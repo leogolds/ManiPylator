@@ -5,7 +5,7 @@
 
 ## What is this?
 
-**ManiPylator** is an open-source project developing an accessible, high-quality & reproducible stack for robotics experimentation. Our goal is to lower the barrier to entry for both hobbyists and researchers by providing a modern develoment environment based around containers. Furthermore, **ManiPylator** aims to be a "batteries included" robotics platform by bringing together robust educational content backed by the [Genesis](https://genesis-world.readthedocs.io/en/latest/#) physics simulation engine & the Python scientific stack. 
+**ManiPylator** is an open-source project developing an accessible, high-quality & reproducible stack for robotics experimentation. Our goal is to lower the barrier to entry for both hobbyists and researchers by providing a modern robotics develoment environment based around containers. Furthermore, **ManiPylator** aims to be a "batteries included" robotics platform by bringing together robust educational content backed by the [Genesis](https://genesis-world.readthedocs.io/en/latest/#) physics simulation engine, [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) & the Python scientific stack. 
 
 This project, in part, came about as an attempt to build a 3D printed, 6DOF robotic manipulator, programmable in Python. While alternatives exist, finding a solution that can take you from a 3D model to a moving robot proved challanging. This project aims to do just that, include everything you need to go from ideation to simulation within a modern software envirinoment. By developing a stable platform for embodied robotics in an open-source context we hope to spark experimentation & innovation.
 
@@ -28,3 +28,45 @@ xhost +local:root # Allow the container to access the display
 docker compose up lab -d
 ```
 Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/00-start-here.ipynb) to try out a few basics
+
+## Included Tutorial Collections
+
+This repository includes two excellent tutorial collections that provide comprehensive coverage of robotics fundamentals:
+
+### 1. Differential Kinematics Tutorial (DKT)
+**Source**: [jhavl/dkt](https://github.com/jhavl/dkt) by Jesse Haviland and Peter Corke
+
+**Part 1**: Kinematics, Velocity, and Applications
+- [Manipulator Kinematics](http://localhost:8888/lab/tree/external/dkt/Part%201/1%20Manipulator%20Kinematics.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%201/1%20Manipulator%20Kinematics.ipynb)
+- [The Manipulator Jacobian](http://localhost:8888/lab/tree/external/dkt/Part%201/2%20The%20Manipulator%20Jacobian.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%201/2%20The%20Manipulator%20Jacobian.ipynb)
+- [Resolved-Rate Motion Control](http://localhost:8888/lab/tree/external/dkt/Part%201/3%20Resolved-Rate%20Motion%20Control.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%201/3%20Resolved-Rate%20Motion%20Control.ipynb)
+- [Numerical Inverse Kinematics](http://localhost:8888/lab/tree/external/dkt/Part%201/4%20Numerical%20Inverse%20Kinematics.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%201/4%20Numerical%20Inverse%20Kinematics.ipynb)
+- [Manipulator Performance Measures](http://localhost:8888/lab/tree/external/dkt/Part%201/5%20Manipulator%20Performance%20Measures.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%201/5%20Manipulator%20Performance%20Measures.ipynb)
+
+**Part 2**: Acceleration and Advanced Applications
+- [The Manipulator Hessian](http://localhost:8888/lab/tree/external/dkt/Part%202/1%20The%20Manipulator%20Hessian.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/1%20The%20Manipulator%20Hessian.ipynb)
+- [Higher Order Derivatives](http://localhost:8888/lab/tree/external/dkt/Part%202/2%20Higher%20Order%20Derivatives.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/2%20Higher%20Order%20Derivatives.ipynb)
+- [Analytic Forms](http://localhost:8888/lab/tree/external/dkt/Part%202/3%20Analytic%20Forms.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/3%20Analytic%20Forms.ipynb)
+- [Null-Space Projection for Motion Control](http://localhost:8888/lab/tree/external/dkt/Part%202/4%20Null-Space%20Projection%20for%20Motion%20Control.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/4%20Null-Space%20Projection%20for%20Motion%20Control.ipynb)
+- [Quadratic Programming for Motion Control](http://localhost:8888/lab/tree/external/dkt/Part%202/5%20Quadratic%20Programming%20for%20Motion%20Control.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/5%20Quadratic%20Programming%20for%20Motion%20Control.ipynb)
+- [Advanced Numerical Inverse Kinematics](http://localhost:8888/lab/tree/external/dkt/Part%202/6%20Advanced%20Numerical%20Inverse%20Kinematics.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/6%20Advanced%20Numerical%20Inverse%20Kinematics.ipynb)
+- [Quadratic-Rate Motion Control](http://localhost:8888/lab/tree/external/dkt/Part%202/7%20Quadratic-Rate%20Motion%20Control.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/7%20Quadratic-Rate%20Motion%20Control.ipynb)
+
+### 2. Spatial Mathematics Tutorial
+**Source**: [jhavl/spatialmathematics](https://github.com/jhavl/spatialmathematics) by Jesse Haviland and Peter Corke
+
+**Core Concepts**:
+- [Linear Transformations](http://localhost:8888/lab/tree/external/spatialmathematics/0%20Linear%20Transformations.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/0%20Linear%20Transformations.ipynb)
+- [Spatial Mathematics Fundamentals](http://localhost:8888/lab/tree/external/spatialmathematics/1%20Spatial%20Mathematics.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/1%20Spatial%20Mathematics.ipynb)
+- [Deep Dive into Orientation (quaternions, Euler angles, rotation matrices)](http://localhost:8888/lab/tree/external/spatialmathematics/2%20Deep%20Dive%20into%20Orientation.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/2%20Deep%20Dive%20into%20Orientation.ipynb)
+- [Twists and Trajectories](http://localhost:8888/lab/tree/external/spatialmathematics/3%20Twists%20and%20Trajectories.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/3%20Twists%20and%20Trajectories.ipynb)
+- [Differential Spatial Mathematics](http://localhost:8888/lab/tree/external/spatialmathematics/4%20Differential%20Spatial%20Mathematics.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/4%20Differential%20Spatial%20Mathematics.ipynb)
+- [Graph Theory and Planning Algorithms](http://localhost:8888/lab/tree/external/spatialmathematics/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb)
+
+**Location**: `external/spatialmathematics/`
+
+## Learning Path
+
+For beginners, we recommend starting with the **Spatial Mathematics Tutorial** to build foundational knowledge, then progressing to the **Differential Kinematics Tutorial** for advanced manipulator concepts.
+
+Both tutorial collections are powered by the [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) and provide hands-on examples perfect for learning robotics concepts.
