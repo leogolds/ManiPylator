@@ -63,6 +63,8 @@ This repository includes two excellent tutorial collections that provide compreh
 - [Advanced Numerical Inverse Kinematics](http://localhost:8888/lab/tree/external/dkt/Part%202/6%20Advanced%20Numerical%20Inverse%20Kinematics.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/6%20Advanced%20Numerical%20Inverse%20Kinematics.ipynb)
 - [Quadratic-Rate Motion Control](http://localhost:8888/lab/tree/external/dkt/Part%202/7%20Quadratic-Rate%20Motion%20Control.ipynb) | [Source](https://github.com/jhavl/dkt/blob/main/Part%202/7%20Quadratic-Rate%20Motion%20Control.ipynb)
 
+**Location**: [external/dkt](external/dkt)
+
 ### 2. Spatial Mathematics Tutorial
 **Source**: [jhavl/spatialmathematics](https://github.com/jhavl/spatialmathematics) by Jesse Haviland and Peter Corke
 
@@ -74,7 +76,7 @@ This repository includes two excellent tutorial collections that provide compreh
 - [Differential Spatial Mathematics](http://localhost:8888/lab/tree/external/spatialmathematics/4%20Differential%20Spatial%20Mathematics.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/4%20Differential%20Spatial%20Mathematics.ipynb)
 - [Graph Theory and Planning Algorithms](http://localhost:8888/lab/tree/external/spatialmathematics/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb)
 
-**Location**: `external/spatialmathematics/`
+**Location**: [external/spatialmathematics](external/spatialmathematics)
 
 ## Learning Path
 
