@@ -50,9 +50,22 @@ Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/0
 
 This repository includes two excellent tutorial collections that provide comprehensive coverage of robotics fundamentals. These tutorials complement the comprehensive robotics textbook [*Robotics, Vision and Control*](https://petercorke.com/wordpress/books/robotics-vision-control/) by Peter Corke. Powered by the [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) these tutorials provide hands-on examples perfect for novice roboticists.
 
-For more details, visit [Peter Corke's website](https://petercorke.com/).
+For more details, visit [Peter Corke's website](https://petercorke.com/rvc3p/home/).
 
-### 1. Differential Kinematics Tutorial (DKT)
+### Spatial Mathematics Tutorial
+**Source**: [jhavl/spatialmathematics](https://github.com/jhavl/spatialmathematics) by Jesse Haviland and Peter Corke
+
+**Core Concepts**:
+- [Linear Transformations](http://localhost:8888/lab/tree/external/spatialmathematics/0%20Linear%20Transformations.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/0%20Linear%20Transformations.ipynb)
+- [Spatial Mathematics Fundamentals](http://localhost:8888/lab/tree/external/spatialmathematics/1%20Spatial%20Mathematics.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/1%20Spatial%20Mathematics.ipynb)
+- [Deep Dive into Orientation (quaternions, Euler angles, rotation matrices)](http://localhost:8888/lab/tree/external/spatialmathematics/2%20Deep%20Dive%20into%20Orientation.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/2%20Deep%20Dive%20into%20Orientation.ipynb)
+- [Twists and Trajectories](http://localhost:8888/lab/tree/external/spatialmathematics/3%20Twists%20and%20Trajectories.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/3%20Twists%20and%20Trajectories.ipynb)
+- [Differential Spatial Mathematics](http://localhost:8888/lab/tree/external/spatialmathematics/4%20Differential%20Spatial%20Mathematics.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/4%20Differential%20Spatial%20Mathematics.ipynb)
+- [Graph Theory and Planning Algorithms](http://localhost:8888/lab/tree/external/spatialmathematics/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb)
+
+**Location**: [external/spatialmathematics](external/spatialmathematics)
+
+### Differential Kinematics Tutorial (DKT)
 **Source**: [jhavl/dkt](https://github.com/jhavl/dkt) by Jesse Haviland and Peter Corke
 
 **Part 1**: Kinematics, Velocity, and Applications
@@ -73,15 +86,4 @@ For more details, visit [Peter Corke's website](https://petercorke.com/).
 
 **Location**: [external/dkt](external/dkt)
 
-### 2. Spatial Mathematics Tutorial
-**Source**: [jhavl/spatialmathematics](https://github.com/jhavl/spatialmathematics) by Jesse Haviland and Peter Corke
 
-**Core Concepts**:
-- [Linear Transformations](http://localhost:8888/lab/tree/external/spatialmathematics/0%20Linear%20Transformations.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/0%20Linear%20Transformations.ipynb)
-- [Spatial Mathematics Fundamentals](http://localhost:8888/lab/tree/external/spatialmathematics/1%20Spatial%20Mathematics.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/1%20Spatial%20Mathematics.ipynb)
-- [Deep Dive into Orientation (quaternions, Euler angles, rotation matrices)](http://localhost:8888/lab/tree/external/spatialmathematics/2%20Deep%20Dive%20into%20Orientation.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/2%20Deep%20Dive%20into%20Orientation.ipynb)
-- [Twists and Trajectories](http://localhost:8888/lab/tree/external/spatialmathematics/3%20Twists%20and%20Trajectories.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/3%20Twists%20and%20Trajectories.ipynb)
-- [Differential Spatial Mathematics](http://localhost:8888/lab/tree/external/spatialmathematics/4%20Differential%20Spatial%20Mathematics.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/4%20Differential%20Spatial%20Mathematics.ipynb)
-- [Graph Theory and Planning Algorithms](http://localhost:8888/lab/tree/external/spatialmathematics/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb)
-
-**Location**: [external/spatialmathematics](external/spatialmathematics)
