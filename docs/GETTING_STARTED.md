@@ -12,6 +12,8 @@ ManiPylator is a Python library that provides a unified interface to both analyt
 git clone https://github.com/your-username/manipylator.git
 cd manipylator
 
+xhost +local:root # Allow the container to access the display
+
 # Start the Jupyter Lab environment
 docker compose up -d
 
