@@ -10,7 +10,9 @@
 This project, in part, came about as an attempt to build a 3D printed, 6DOF robotic manipulator, programmable in Python. While alternatives exist, finding a solution that can take you from a 3D model to a moving robot proved challenging. This project aims to do just that, include everything you need to go from ideation to simulation within a modern software environment. By developing a stable platform for embodied robotics in an open-source context we hope to spark experimentation & innovation.
 
 
-[![ManiPylator Demo](https://img.youtube.com/vi/WYfLqH1Y9I4/0.jpg)](https://youtu.be/WYfLqH1Y9I4)
+| [![Multi-stepper control](https://img.youtube.com/vi/WYfLqH1Y9I4/0.jpg)](https://youtu.be/WYfLqH1Y9I4) | [![Multi-stepper control](https://img.youtube.com/vi/1Tu2l6vkUr8/0.jpg)](https://youtu.be/1Tu2l6vkUr8) |
+|:---:|:---:|
+| [Simulated Movement](https://youtu.be/WYfLqH1Y9I4) | [Simulated Movement](https://youtu.be/1Tu2l6vkUr8) |
 
 ---
 ## Quickstart
