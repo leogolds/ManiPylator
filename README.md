@@ -3,6 +3,8 @@
 
 3D printed 6DOF robotic manipulator powered by your favorite snake based programming language
 
+
+
 ## What is this?
 
 **ManiPylator** is an open-source project developing an accessible, high-quality & reproducible stack for robotics experimentation. Our goal is to lower the barrier to entry for both hobbyists and researchers by providing a modern robotics development environment based around containers. Furthermore, **ManiPylator** aims to be a "batteries included" robotics platform by bringing together robust educational content backed by the [Genesis](https://genesis-world.readthedocs.io/en/latest/#) physics simulation engine, [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) & the Python scientific stack. 
@@ -12,7 +14,7 @@ This project, in part, came about as an attempt to build a 3D printed, 6DOF robo
 
 | [![Multi-stepper control](https://img.youtube.com/vi/WYfLqH1Y9I4/0.jpg)](https://youtu.be/WYfLqH1Y9I4) | [![Multi-stepper control](https://img.youtube.com/vi/1Tu2l6vkUr8/0.jpg)](https://youtu.be/1Tu2l6vkUr8) |
 |:---:|:---:|
-| [Simulated Movement](https://youtu.be/WYfLqH1Y9I4) | [Simulated Movement](https://youtu.be/1Tu2l6vkUr8) |
+| [Granular Multi-stepper Control](https://youtu.be/WYfLqH1Y9I4) | [Simulated Movement](https://youtu.be/1Tu2l6vkUr8) |
 
 ---
 ## Quickstart
@@ -46,9 +48,9 @@ Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/0
 
 ## Included Tutorial Collections
 
-This repository includes two excellent tutorial collections that provide comprehensive coverage of robotics fundamentals:
+This repository includes two excellent tutorial collections that provide comprehensive coverage of robotics fundamentals. These tutorials complement the comprehensive robotics textbook [*Robotics, Vision and Control*](https://petercorke.com/wordpress/books/robotics-vision-control/) by Peter Corke. Powered by the [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) these tutorials provide hands-on examples perfect for novice roboticists.
 
-**Textbook Reference**: These tutorials complement the comprehensive robotics textbook [*Robotics, Vision and Control*](https://petercorke.com/wordpress/books/robotics-vision-control/) by Peter Corke. For more details, visit [Peter Corke's website](https://petercorke.com/).
+For more details, visit [Peter Corke's website](https://petercorke.com/).
 
 ### 1. Differential Kinematics Tutorial (DKT)
 **Source**: [jhavl/dkt](https://github.com/jhavl/dkt) by Jesse Haviland and Peter Corke
@@ -83,9 +85,3 @@ This repository includes two excellent tutorial collections that provide compreh
 - [Graph Theory and Planning Algorithms](http://localhost:8888/lab/tree/external/spatialmathematics/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb) | [Source](https://github.com/jhavl/spatialmathematics/blob/main/5%20Graph%20Theory%20and%20Planning%20Algorithms.ipynb)
 
 **Location**: [external/spatialmathematics](external/spatialmathematics)
-
-## Learning Path
-
-For beginners, we recommend starting with the **Spatial Mathematics Tutorial** to build foundational knowledge, then progressing to the **Differential Kinematics Tutorial** for advanced manipulator concepts.
-
-Both tutorial collections are powered by the [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) and provide hands-on examples perfect for novice roboticists.
