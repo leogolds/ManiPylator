@@ -9,9 +9,22 @@
 
 This project, in part, came about as an attempt to build a 3D printed, 6DOF robotic manipulator, programmable in Python. While alternatives exist, finding a solution that can take you from a 3D model to a moving robot proved challenging. This project aims to do just that, include everything you need to go from ideation to simulation within a modern software environment. By developing a stable platform for embodied robotics in an open-source context we hope to spark experimentation & innovation.
 
----
 
-## Where should I go?
+[![ManiPylator Demo](https://img.youtube.com/vi/WYfLqH1Y9I4/0.jpg)](https://youtu.be/WYfLqH1Y9I4)
+
+---
+## Quickstart
+```bash
+xhost +local:root # Allow the container to access the display
+
+git clone https://github.com/leogolds/ManiPylator.git
+cd ManiPylator
+
+docker compose up lab -d
+```
+Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/00-start-here.ipynb) for a sanity check and a few basics.
+
+## Where should I go now?
 
 - **I know nothing of robotics but excited to learn**: many paths lead here, but which is best for you? See the [RESOURCES.md](docs/RESOURCES.md) file for some high quality introductory robotics resources. For those seeking a narrative introduction, check out [Part 1: Where to start?](https://hackaday.io/project/197770-manipylator/log/232565-manipilator-part-1-where-to-start) and [Part 2: Simulation & Motion Planning](https://hackaday.io/project/197770-manipylator/log/240946-manipylator-part-2-simulation-motion-planning)
 
@@ -27,16 +40,7 @@ This project, in part, came about as an attempt to build a 3D printed, 6DOF robo
 
 - **I'm just curious. How does this work?**: Please check out our [Architecture](docs/ARCHITECTURE.md) outline to understand how things are put together.
 
-## Basic Setup
-``` bash
-git clone https://github.com/leogolds/ManiPylator.git
-cd ManiPylator
 
-xhost +local:root # Allow the container to access the display
-
-docker compose up lab -d
-```
-Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/00-start-here.ipynb) to try out a few basics
 
 ## Included Tutorial Collections
 
