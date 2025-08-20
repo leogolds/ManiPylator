@@ -1,7 +1,7 @@
 # ManiPylator
 <img src="docs/logo.webp" width="150" height="150" align="right">
 
-3D printed 6DOF robotic manipulator powered by your favorite snake based programming language
+3D printed 6DOF robotic manipulator powered by your favorite snake-based programming language
 
 <br><br>
 
