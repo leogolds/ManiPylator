@@ -23,3 +23,10 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
+
+# Include the controller compose file
+include:
+  - path: ./containers/controller/compose.yaml
+    profiles:
+      - full
+      - simulated
