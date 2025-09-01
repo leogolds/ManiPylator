@@ -32,9 +32,14 @@ SensorID = DeviceID
 class MessageBase(BaseModel):
     """Base config: forbid extra keys and keep field order as defined."""
 
-    model_config = ConfigDict(extra="forbid", frozen=False, str_strip_whitespace=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=False,
+        str_strip_whitespace=True,
+        json_encoders={AwareDatetime: lambda v: v.isoformat() if v else None},
+    )
 
-    schema: SchemaStr
+    message_schema: SchemaStr
     version: Literal["v1"] = "v1"  # Explicit versioning
     time_created_utc: AwareDatetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
@@ -52,15 +57,19 @@ class MessageBase(BaseModel):
         None, description="For distributed tracing across the system"
     )
 
+    def json_serializable_dict(self) -> dict:
+        """Return a dict that can be safely serialized to JSON."""
+        return self.model_dump(mode="json")
+
     @property
     def topic(self) -> str:
         """Generate the MQTT topic for this message type."""
-        schema_parts = self.schema.split("/")
+        schema_parts = self.message_schema.split("/")
         if len(schema_parts) >= 3:
             category = schema_parts[1]  # e.g., "device", "stream", "analysis"
             message_type = schema_parts[2]  # e.g., "about", "status", "frame"
             return f"manipylator/{category}/{message_type}"
-        return f"manipylator/{self.schema}"
+        return f"manipylator/{self.message_schema}"
 
 
 class DeviceType(str, Enum):
@@ -89,14 +98,18 @@ class ControlType(str, Enum):
 
 class DeviceCapability(str, Enum):
     video_stream = "video_stream"
-    video_analysis = "video_analysis"
+    video_frame = "video_frame"
+    video_stream_analysis = "video_stream_analysis"
+    video_frame_analysis = "video_frame_analysis"
     distance_sensing = "distance_sensing"
     safety_monitoring = "safety_monitoring"
     robot_control = "robot_control"
 
 
 class DeviceAboutV1(MessageBase):
-    schema: Literal["manipylator/device/about/v1"] = "manipylator/device/about/v1"
+    message_schema: Literal["manipylator/device/about/v1"] = (
+        "manipylator/device/about/v1"
+    )
     device_id: DeviceID
     type: DeviceType
     vendor: Optional[str] = None
@@ -117,7 +130,9 @@ class DeviceAboutV1(MessageBase):
 
 
 class DeviceStatusV1(MessageBase):
-    schema: Literal["manipylator/device/status/v1"] = "manipylator/device/status/v1"
+    message_schema: Literal["manipylator/device/status/v1"] = (
+        "manipylator/device/status/v1"
+    )
     device_id: DeviceID
     state: StateStr
     uptime_seconds: Optional[NonNegativeInt] = None
@@ -130,7 +145,9 @@ class DeviceStatusV1(MessageBase):
 class DeviceConfigV1(MessageBase):
     """Optional: a typed snapshot of a device's runtime config."""
 
-    schema: Literal["manipylator/device/config/v1"] = "manipylator/device/config/v1"
+    message_schema: Literal["manipylator/device/config/v1"] = (
+        "manipylator/device/config/v1"
+    )
     device_id: DeviceID
     params: Dict[str, Union[str, int, float, bool]] = Field(default_factory=dict)
 
@@ -140,7 +157,9 @@ class DeviceConfigV1(MessageBase):
 
 
 class DeviceHealthV1(MessageBase):
-    schema: Literal["manipylator/device/health/v1"] = "manipylator/device/health/v1"
+    message_schema: Literal["manipylator/device/health/v1"] = (
+        "manipylator/device/health/v1"
+    )
     device_id: DeviceID
     cpu_percent: Optional[float] = Field(None, ge=0.0, le=100.0)
     memory_mb: Optional[float] = Field(None, ge=0.0)
@@ -167,7 +186,7 @@ class NetGearInfo(BaseModel):
 
 
 class StreamInfoV1(MessageBase):
-    schema: Literal["manipylator/stream/info/v1"] = "manipylator/stream/info/v1"
+    message_schema: Literal["manipylator/stream/info/v1"] = "manipylator/stream/info/v1"
     camera_id: CameraID
     vidgear: NetGearInfo
     notes: Optional[str] = None
@@ -178,7 +197,9 @@ class StreamInfoV1(MessageBase):
 
 
 class StreamStatusV1(MessageBase):
-    schema: Literal["manipylator/stream/status/v1"] = "manipylator/stream/status/v1"
+    message_schema: Literal["manipylator/stream/status/v1"] = (
+        "manipylator/stream/status/v1"
+    )
     camera_id: CameraID
     state: StateStr
     fps: Optional[float] = Field(None, ge=0.0)
@@ -200,7 +221,9 @@ class Encoding(str, Enum):
 
 
 class FrameSnapshotV1(MessageBase):
-    schema: Literal["manipylator/stream/frame/v1"] = "manipylator/stream/frame/v1"
+    message_schema: Literal["manipylator/stream/frame/v1"] = (
+        "manipylator/stream/frame/v1"
+    )
     camera_id: CameraID
     frame_id: PositiveInt
     width: PositiveInt
@@ -237,7 +260,9 @@ class FrameSnapshotV1(MessageBase):
 
 
 class DistanceV1(MessageBase):
-    schema: Literal["manipylator/sensor/distance/v1"] = "manipylator/sensor/distance/v1"
+    message_schema: Literal["manipylator/sensor/distance/v1"] = (
+        "manipylator/sensor/distance/v1"
+    )
     sensor_id: SensorID
     value_meters: float = Field(..., ge=0.0)
 
@@ -252,7 +277,9 @@ class DistanceV1(MessageBase):
 
 
 class AnalysisStatusV1(MessageBase):
-    schema: Literal["manipylator/analysis/status/v1"] = "manipylator/analysis/status/v1"
+    message_schema: Literal["manipylator/analysis/status/v1"] = (
+        "manipylator/analysis/status/v1"
+    )
     proc_id: ProcID
     state: StateStr = StateStr.online
 
@@ -262,7 +289,7 @@ class AnalysisStatusV1(MessageBase):
 
 
 class HandGuardEventV1(MessageBase):
-    schema: Literal["manipylator/safety/hand_guard/v1"] = (
+    message_schema: Literal["manipylator/safety/hand_guard/v1"] = (
         "manipylator/safety/hand_guard/v1"
     )
     proc_id: ProcID
@@ -277,7 +304,7 @@ class HandGuardEventV1(MessageBase):
 
 
 class ObjectOffsetV1(MessageBase):
-    schema: Literal["manipylator/analysis/object_offset/v1"] = (
+    message_schema: Literal["manipylator/analysis/object_offset/v1"] = (
         "manipylator/analysis/object_offset/v1"
     )
     proc_id: ProcID
@@ -323,7 +350,9 @@ class SafetyLevel(str, Enum):
 
 
 class SafetyEventV1(MessageBase):
-    schema: Literal["manipylator/safety/event/v1"] = "manipylator/safety/event/v1"
+    message_schema: Literal["manipylator/safety/event/v1"] = (
+        "manipylator/safety/event/v1"
+    )
     type: SafetyEventType
     reason: Optional[str] = None
     source: Optional[str] = None
@@ -343,7 +372,9 @@ class SafetyEventV1(MessageBase):
 
 
 class ControlCmdV1(MessageBase):
-    schema: Literal["manipylator/control/command/v1"] = "manipylator/control/command/v1"
+    message_schema: Literal["manipylator/control/command/v1"] = (
+        "manipylator/control/command/v1"
+    )
     type: ControlType
     reason: Optional[str] = None
     source: Optional[str] = None
@@ -370,7 +401,7 @@ class ControlCmdV1(MessageBase):
 
 
 class ControlFeedbackV1(MessageBase):
-    schema: Literal["manipylator/control/feedback/v1"] = (
+    message_schema: Literal["manipylator/control/feedback/v1"] = (
         "manipylator/control/feedback/v1"
     )
     robot_id: RobotID
@@ -391,7 +422,7 @@ class ControlFeedbackV1(MessageBase):
 
 
 class SystemDiscoveryV1(MessageBase):
-    schema: Literal["manipylator/system/discovery/v1"] = (
+    message_schema: Literal["manipylator/system/discovery/v1"] = (
         "manipylator/system/discovery/v1"
     )
     system_id: str
@@ -404,7 +435,9 @@ class SystemDiscoveryV1(MessageBase):
 
 
 class SystemHealthV1(MessageBase):
-    schema: Literal["manipylator/system/health/v1"] = "manipylator/system/health/v1"
+    message_schema: Literal["manipylator/system/health/v1"] = (
+        "manipylator/system/health/v1"
+    )
     system_id: str
     overall_status: StateStr
     device_count: int
@@ -422,7 +455,9 @@ class SystemHealthV1(MessageBase):
 
 
 class ErrorEventV1(MessageBase):
-    schema: Literal["manipylator/system/error/v1"] = "manipylator/system/error/v1"
+    message_schema: Literal["manipylator/system/error/v1"] = (
+        "manipylator/system/error/v1"
+    )
     device_id: Optional[DeviceID] = None
     error_code: str
     error_message: str
@@ -480,14 +515,14 @@ SCHEMA_TO_MODEL: Dict[str, type[MessageBase]] = {
 
 
 def parse_payload(payload_bytes: bytes) -> AnyMessage:
-    """Safe dynamic loader based on the `schema` field."""
+    """Safe dynamic loader based on the `message_schema` field."""
     import json
 
     obj = json.loads(payload_bytes.decode("utf-8"))
-    schema = obj.get("schema")
-    if not isinstance(schema, str):
-        raise ValueError("Missing or invalid 'schema' field.")
-    Model = SCHEMA_TO_MODEL.get(schema)
+    message_schema = obj.get("message_schema")
+    if not isinstance(message_schema, str):
+        raise ValueError("Missing or invalid 'message_schema' field.")
+    Model = SCHEMA_TO_MODEL.get(message_schema)
     if not Model:
-        raise ValueError(f"Unsupported schema: {schema}")
+        raise ValueError(f"Unsupported schema: {message_schema}")
     return Model.model_validate(obj)
