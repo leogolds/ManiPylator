@@ -124,12 +124,13 @@ class HandDetector(MQClient):
             processing_time = random.uniform(0.2, 1.2)
             time.sleep(processing_time)
 
-            # Random hand detection result
-            hand_detected = random.choice([True, False])
-            event_type = "hand_detected" if hand_detected else "clear"
-            confidence = (
-                random.uniform(0.7, 0.95) if hand_detected else random.uniform(0.0, 0.3)
-            )
+            # # Random hand detection result
+            # hand_detected = random.choice([True, False])
+            # event_type = "hand_detected" if hand_detected else "clear"
+            # confidence = (
+            #     random.uniform(0.7, 0.95) if hand_detected else random.uniform(0.0, 0.3)
+            # )
+            from tasks import detect_hand
 
             # Create hand guard event
             hand_event = HandGuardEventV1(
