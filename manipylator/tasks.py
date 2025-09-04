@@ -55,26 +55,51 @@ huey = RedisHuey(
 # ------------------------
 # MediaPipe Hands wrapper
 # ------------------------
-# We construct inside the task to avoid cross-process state issues.
+# Initialize Hands model once and reuse it
+
+_hands_model = None
+
+
+def _get_hands_model():
+    """Get or create the MediaPipe Hands model (singleton pattern)."""
+    global _hands_model
+    if _hands_model is None:
+        print("Initializing MediaPipe Hands model...")
+        _hands_model = mp_hands.Hands(
+            static_image_mode=False,
+            max_num_hands=2,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5,
+        )
+        print("MediaPipe Hands model initialized")
+    return _hands_model
 
 
 def _detect_hands_confidence_bgr(frame) -> float:
-    print("init detector")
-    with mp_hands.Hands(
-        static_image_mode=False,
-        max_num_hands=2,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-    ) as hands:
-        print("convert to rgb")
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        print("detect")
-        results = hands.process(rgb)
-        print(f"anything detected?: {results.multi_handedness}")
-        if not results.multi_handedness:
-            return 0.0
-        # Use best score among detected hands
-        return float(max(h.classification[0].score for h in results.multi_handedness))
+    """Detect hands in a BGR frame and return confidence score."""
+    hands = _get_hands_model()
+
+    # Convert BGR to RGB
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    # Process frame
+    results = hands.process(rgb)
+
+    if not results.multi_handedness:
+        return 0.0
+
+    # Use best score among detected hands
+    return float(max(h.classification[0].score for h in results.multi_handedness))
+
+
+def cleanup_hands_model():
+    """Clean up the MediaPipe Hands model."""
+    global _hands_model
+    if _hands_model is not None:
+        print("Closing MediaPipe Hands model...")
+        _hands_model.close()
+        _hands_model = None
+        print("MediaPipe Hands model closed")
 
 
 # ------------------------
@@ -201,11 +226,12 @@ def detect_hands_latest(
 
 
 @huey.on_shutdown()
-def cleanup_netgear_connections():
+def cleanup_resources():
     """
     Huey shutdown hook that triggers when the worker shuts down.
-    Closes all cached NetGear connections to prevent resource leaks.
+    Closes all cached NetGear connections and MediaPipe models to prevent resource leaks.
     """
-    print("Worker shutting down - cleaning up NetGear connections...")
+    print("Worker shutting down - cleaning up resources...")
     clear_netgear_cache()
-    print("NetGear cleanup completed")
+    cleanup_hands_model()
+    print("Resource cleanup completed")
