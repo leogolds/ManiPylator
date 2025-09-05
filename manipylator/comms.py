@@ -204,13 +204,6 @@ class MQClient:
         self.publish_device_about()
         self.publish_device_status()
 
-        # Call custom initialization
-        self.initialize()
-
-    def initialize(self):
-        """Custom initialization logic. Override in subclasses."""
-        pass
-
     def stop(self):
         """Stop the client."""
         self.log(f"Stopping {self.__class__.__name__}...")
