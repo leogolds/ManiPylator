@@ -18,6 +18,7 @@ import threading
 import base64
 import cv2
 import numpy as np
+from vidgear.gears import CamGear
 
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
@@ -64,9 +65,10 @@ class CameraDevice(MQClient):
         self.camera_id = camera_id
         self.netgear_port = netgear_port
         self.heartbeat_interval = heartbeat_interval
-        self.netgear_server = None
+        self.netgear = None
         self.heartbeat_thread = None
         self.last_heartbeat = time.time()
+        self.camgear = None
 
     def setup_netgear(self):
         """Set up NetGear server for frame streaming."""
@@ -79,7 +81,7 @@ class CameraDevice(MQClient):
                 "max_retries": 0,  # 0 means infinite retries in NetGear
                 "timeout": 2.0,  # Timeout per attempt
             }
-            self.netgear_server = NetGear(
+            self.netgear = NetGear(
                 address="127.0.0.1",
                 port=self.netgear_port,
                 pattern=2,
@@ -90,6 +92,16 @@ class CameraDevice(MQClient):
             return True
         except Exception as e:
             self.log(f"Failed to set up NetGear server: {e}")
+            return False
+
+    def setup_camera(self):
+        """Set up camera stream using CamGear."""
+        try:
+            self.camgear = CamGear(source=0).start()
+            self.log("Camera stream initialized")
+            return True
+        except Exception as e:
+            self.log(f"Failed to set up camera stream: {e}")
             return False
 
     def publish_device_announcement(self):
@@ -150,12 +162,19 @@ class CameraDevice(MQClient):
 
     def stream_frame(self, frame_id: int = None):
         """Stream a video frame via NetGear to connected clients."""
-        if not self.netgear_server:
+        if not self.netgear:
             self.log("NetGear server not available")
             return False
 
-        # Create a test frame (you can replace this with actual camera capture)
-        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        # Capture frame from camera
+        if not self.camgear:
+            self.log("Camera stream not available")
+            return False
+
+        frame = self.camgear.read()
+        if frame is None:
+            self.log("Failed to read frame from camera")
+            return False
 
         # Add timestamp text to the frame
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
@@ -175,7 +194,7 @@ class CameraDevice(MQClient):
 
         # Send frame via NetGear
         try:
-            self.netgear_server.send(frame)
+            self.netgear.send(frame)
             return True
         except Exception as e:
             self.log(f"Failed to send frame via NetGear: {e}")
@@ -206,9 +225,9 @@ class CameraDevice(MQClient):
 
             # Publish to the topic that HandDetector listens to
             self.publish(frame_notification.topic, frame_notification, retain=False)
-            self.log(
-                f"Published frame notification {frame_id} to {frame_notification.topic}"
-            )
+            # self.log(
+            #     f"Published frame notification {frame_id} to {frame_notification.topic}"
+            # )
 
         except Exception as e:
             self.log(f"Failed to publish frame notification: {e}")
@@ -221,6 +240,11 @@ class CameraDevice(MQClient):
         # Set up NetGear server
         if not self.setup_netgear():
             self.log("Failed to set up NetGear server")
+            return
+
+        # Set up camera stream
+        if not self.setup_camera():
+            self.log("Failed to set up camera stream")
             return
 
         # Publish initial device announcement
@@ -259,12 +283,20 @@ class CameraDevice(MQClient):
         self.stop()
 
         # Close NetGear server
-        if self.netgear_server:
+        if self.netgear:
             try:
-                self.netgear_server.close()
+                self.netgear.close()
                 self.log("NetGear server closed")
             except Exception as e:
                 self.log(f"Error closing NetGear server: {e}")
+
+        # Close camera stream
+        if self.camgear:
+            try:
+                self.camgear.stop()
+                self.log("Camera stream closed")
+            except Exception as e:
+                self.log(f"Error closing camera stream: {e}")
 
         # Wait for heartbeat thread to finish
         if self.heartbeat_thread and self.heartbeat_thread.is_alive():
