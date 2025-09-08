@@ -17,6 +17,15 @@ class LatestFrameCamGear:
         self.running = True
         self.target_dt = 1.0 / target_fps if target_fps else 0.0
 
+        options = {
+            "frame_size_reduction": 40,
+            "jpeg_compression_quality": 80,
+            "jpeg_compression_fastdct": True,
+            "jpeg_compression_fastupsample": False,
+        }
+        self.webgear = WebGear(logging=True, **options)
+        self.webgear.config["generator"] = self.read
+
         self.start()
 
     def _update_frames(self):
@@ -49,10 +58,16 @@ class LatestFrameCamGear:
             )
             await asyncio.sleep(0.02)
 
-    def start(self):
+    def start(
+        self,
+    ):
         # Start background thread to update deque
         self.thread = threading.Thread(target=self._update_frames, daemon=True)
         self.thread.start()
+        try:
+            uvicorn.run(self.webgear, host="localhost", port=8000)
+        finally:
+            self.stop()
 
     def stop(self):
         """Stop the camera and cleanup resources."""
@@ -60,29 +75,17 @@ class LatestFrameCamGear:
         self.thread.join(timeout=1.0)
         if self.camgear:
             self.camgear.stop()
+        if self.webgear:
+            self.webgear.stop()
 
 
 # assign your Custom Streaming Class with adequate source (for e.g. foo.mp4)
 # to `custom_stream` attribute in options parameter
 # options = {"custom_stream": Custom_Stream_Class()}
 # options = {"custom_stream": CamGear(0)}
-options = {
-    "frame_size_reduction": 40,
-    "jpeg_compression_quality": 80,
-    "jpeg_compression_fastdct": True,
-    "jpeg_compression_fastupsample": False,
-}
+
 
 latest_cam = LatestFrameCamGear()
-
-# initialize WebGear_RTC app without any source
-web = WebGear(logging=True, **options)
-
-web.config["generator"] = latest_cam.read
-
+latest_cam.start()
 
 # run this app on Uvicorn server at address http://localhost:8000/
-uvicorn.run(web, host="localhost", port=8000)
-
-# close app safely
-web.shutdown()
