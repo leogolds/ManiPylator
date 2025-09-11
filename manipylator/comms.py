@@ -1,11 +1,13 @@
 import json
 import time
 from datetime import datetime, timezone
+from functools import cache
 from time import sleep
 from typing import Optional, List, Dict, Callable
 
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
+from vidgear.gears import NetGear
 
 from schemas import (
     DeviceAboutV1,
@@ -13,6 +15,7 @@ from schemas import (
     DeviceType,
     DeviceCapability,
     StateStr,
+    AnyMessage,
 )
 
 
@@ -109,22 +112,24 @@ class MQClient:
     def on_message(self, client, userdata, msg):
         """Handle incoming MQTT messages."""
         try:
-            # Parse the message
-            payload = json.loads(msg.payload.decode())
-            message_schema = payload.get("message_schema")
+            # Parse payload into appropriate Pydantic model
+            from schemas import parse_payload
+
+            parsed_message = parse_payload(msg.payload)
+            message_schema = parsed_message.message_schema
 
             # Call registered handler or default handler
             if message_schema in self.message_handlers:
-                self.message_handlers[message_schema](payload)
+                self.message_handlers[message_schema](parsed_message)
             else:
-                self.handle_message(payload, message_schema)
+                self.handle_message(parsed_message, message_schema)
 
         except (json.JSONDecodeError, ValidationError) as e:
             self.log(f"Error parsing message: {e}")
         except Exception as e:
             self.log(f"Error processing message: {e}")
 
-    def handle_message(self, payload: dict, message_schema: str):
+    def handle_message(self, message: AnyMessage, message_schema: str):
         """Handle specific message types. Override in subclasses."""
         self.log(f"Received message with schema: {message_schema}")
 
@@ -190,10 +195,13 @@ class MQClient:
         self.publish(device_status.topic, device_status)
         self.log(f"Published device status ({state}) to {device_status.topic}")
 
-    def start(self):
-        """Start the client with subscriptions and custom initialization."""
+    def _setup_mq(self):
+        """Set up MQTT client with subscriptions and device announcements."""
         self.log(f"Starting {self.__class__.__name__}...")
         self.running = True
+
+        # Connect to MQTT broker
+        self.connect()
 
         # Subscribe to configured topics
         for topic in self.subscriptions:
@@ -204,18 +212,19 @@ class MQClient:
         self.publish_device_about()
         self.publish_device_status()
 
-    def stop(self):
-        """Stop the client."""
+    def _cleanup_mq(self):
+        """Clean up MQTT client."""
         self.log(f"Stopping {self.__class__.__name__}...")
         self.running = False
         # Publish offline status
         self.publish_device_status(StateStr.offline)
+        # Disconnect from MQTT broker
+        self.disconnect()
 
     def run(self):
         """Run the client with main loop."""
-        self.start()
-
         try:
+            self._setup_mq()
             # Keep running to process messages
             while self.running:
                 time.sleep(0.1)

@@ -176,10 +176,12 @@ class DeviceHealthV1(MessageBase):
 # ---------------------------
 
 
-class NetGearInfo(BaseModel):
-    class_name: Literal["NetGear_Async", "NetGear"] = "NetGear_Async"
+class ConnectionInfo(BaseModel):
+    class_name: Literal["NetGear_Async", "NetGear", "WebGear"] = "NetGear_Async"
     pattern: Literal["pub", "sub", "pub-sub"] = "pub-sub"
-    address: constr(min_length=6, max_length=128)  # e.g., tcp://host:5555
+    address: constr(
+        min_length=6, max_length=128
+    )  # e.g., tcp://host:5555 or http://host:port
     options: Dict[str, Union[str, int, float, bool]] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid")
@@ -188,7 +190,7 @@ class NetGearInfo(BaseModel):
 class StreamInfoV1(MessageBase):
     message_schema: Literal["manipylator/stream/info/v1"] = "manipylator/stream/info/v1"
     camera_id: CameraID
-    vidgear: NetGearInfo
+    vidgear: ConnectionInfo
     notes: Optional[str] = None
 
     @property
@@ -240,6 +242,13 @@ class FrameSnapshotV1(MessageBase):
     )
 
     calibration_uid: Optional[str] = None
+    # Timing information
+    frame_capture_time_utc: Optional[AwareDatetime] = Field(
+        None, description="When the frame was captured from camera"
+    )
+    frame_capture_time_monotonic_ns: Optional[NonNegativeInt] = Field(
+        None, description="Monotonic timestamp when frame was captured"
+    )
 
     @model_validator(mode="after")
     def _check_payload_matches_encoding(self) -> "FrameSnapshotV1":
@@ -276,6 +285,28 @@ class DistanceV1(MessageBase):
 # ---------------------------
 
 
+class AnalysisTriggerV1(MessageBase):
+    message_schema: Literal["manipylator/analysis/trigger/v1"] = (
+        "manipylator/analysis/trigger/v1"
+    )
+    proc_id: ProcID
+    camera_id: CameraID
+    netgear_server: str = Field(
+        ..., description="NetGear server address (e.g., tcp://host:port)"
+    )
+    trigger_type: Literal["manual", "timer", "event"] = "manual"
+    analysis_type: Literal["hand_detection", "object_detection", "custom"] = (
+        "hand_detection"
+    )
+    timeout_seconds: Optional[PositiveInt] = Field(
+        10, description="Analysis timeout in seconds"
+    )
+
+    @property
+    def topic(self) -> str:
+        return f"manipylator/analysis/{self.proc_id}/trigger"
+
+
 class AnalysisStatusV1(MessageBase):
     message_schema: Literal["manipylator/analysis/status/v1"] = (
         "manipylator/analysis/status/v1"
@@ -297,6 +328,25 @@ class HandGuardEventV1(MessageBase):
     event: Literal["hand_detected", "clear"] = "hand_detected"
     confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
     source_frame_id: Optional[PositiveInt] = None
+    # Timing information
+    frame_capture_time_utc: Optional[AwareDatetime] = Field(
+        None, description="When the analyzed frame was captured from camera"
+    )
+    frame_capture_time_monotonic_ns: Optional[NonNegativeInt] = Field(
+        None, description="Monotonic timestamp when frame was captured"
+    )
+    analysis_start_time_utc: Optional[AwareDatetime] = Field(
+        None, description="When analysis started"
+    )
+    analysis_start_time_monotonic_ns: Optional[NonNegativeInt] = Field(
+        None, description="Monotonic timestamp when analysis started"
+    )
+    analysis_end_time_utc: Optional[AwareDatetime] = Field(
+        None, description="When analysis completed"
+    )
+    analysis_end_time_monotonic_ns: Optional[NonNegativeInt] = Field(
+        None, description="Monotonic timestamp when analysis completed"
+    )
 
     @property
     def topic(self) -> str:
@@ -482,6 +532,7 @@ AnyMessage = Union[
     StreamStatusV1,
     FrameSnapshotV1,
     DistanceV1,
+    AnalysisTriggerV1,
     AnalysisStatusV1,
     HandGuardEventV1,
     ObjectOffsetV1,
@@ -502,6 +553,7 @@ SCHEMA_TO_MODEL: Dict[str, type[MessageBase]] = {
     "manipylator/stream/status/v1": StreamStatusV1,
     "manipylator/stream/frame/v1": FrameSnapshotV1,
     "manipylator/sensor/distance/v1": DistanceV1,
+    "manipylator/analysis/trigger/v1": AnalysisTriggerV1,
     "manipylator/analysis/status/v1": AnalysisStatusV1,
     "manipylator/safety/hand_guard/v1": HandGuardEventV1,
     "manipylator/analysis/object_offset/v1": ObjectOffsetV1,

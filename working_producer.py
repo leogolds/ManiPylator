@@ -18,7 +18,7 @@ class LatestFrameCamGear:
         self.target_dt = 1.0 / target_fps if target_fps else 0.0
 
         options = {
-            "frame_size_reduction": 40,
+            "frame_size_reduction": 60,
             "jpeg_compression_quality": 80,
             "jpeg_compression_fastdct": True,
             "jpeg_compression_fastupsample": False,
@@ -76,7 +76,7 @@ class LatestFrameCamGear:
         if self.camgear:
             self.camgear.stop()
         if self.webgear:
-            self.webgear.stop()
+            self.webgear.shutdown()
 
 
 # assign your Custom Streaming Class with adequate source (for e.g. foo.mp4)
