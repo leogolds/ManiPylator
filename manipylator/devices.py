@@ -134,6 +134,7 @@ class LatestFrameCamGear(MQClient):
             try:
                 frame = self.camgear.read()
                 if frame is not None:
+                    print(f"{datetime.now()} updating frame")
                     self.latest_frame.append(frame)
                     self.frame_counter += 1
 

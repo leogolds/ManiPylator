@@ -824,9 +824,7 @@ def run_demo():
         camera_id=camera_id,
         netgear_server="http://127.0.0.1:8000/video",
     )
-    listener = SafetyListener(
-        min_clear_signals=1
-    )  # Require 3 consecutive clear signals
+    listener = SafetyListener(min_clear_signals=1)
 
     try:
         # Start components in separate threads
@@ -835,8 +833,8 @@ def run_demo():
         listener_thread = threading.Thread(target=listener.run, daemon=True)
 
         camera_thread.start()
-        analyzer_thread.start()
-        listener_thread.start()
+        # analyzer_thread.start()
+        # listener_thread.start()
 
         # Give them time to start up
         time.sleep(1)
