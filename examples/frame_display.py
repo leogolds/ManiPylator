@@ -4,11 +4,16 @@ Simple example that demonstrates fetching and displaying camera frames
 using the FastAPI discovery system and OpenCV.
 """
 
+import os
+import sys
+import time
+
 import cv2
 import numpy as np
 import requests
-import time
 import paho.mqtt.client as mqtt
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "manipylator"))
 from schemas import parse_payload
 
 

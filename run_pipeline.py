@@ -1,18 +1,18 @@
 #!/home/leo/.pyenv/versions/3.10.16/bin/python3.10
 """
-Single-script launcher for the ManiPylator demo.
+Single-script launcher for the ManiPylator vision-safety pipeline.
 
 Starts three components in order and tears them all down on Ctrl+C:
   1. Huey worker      -- processes hand-detection tasks (2 process workers)
-  2. MQTT demo        -- camera + analyzer + safety listener
-  3. Display client   -- OpenCV GUI with red border on hand detection
+  2. Pipeline         -- camera + analyzer + safety listener
+  3. Stream viewer    -- OpenCV GUI with red border on hand detection
 
 Prerequisites (assumed already running):
   - MQTT broker on localhost:1883
   - Redis on localhost:6379
 
 Usage:
-    python run_demo.py
+    python run_pipeline.py
 """
 
 import os
@@ -27,7 +27,7 @@ PYTHON = sys.executable
 
 # How long to wait between starting each component (seconds)
 HUEY_SETTLE_TIME = 3
-DEMO_SETTLE_TIME = 5
+PIPELINE_SETTLE_TIME = 5
 # How long to give children to exit after SIGINT before killing them
 SHUTDOWN_TIMEOUT = 8
 
@@ -81,33 +81,33 @@ def main():
     print(f"[{_ts()}] [launcher] Huey worker running (pid {huey.pid})")
 
     # ------------------------------------------------------------------
-    # 2. MQTT demo (camera + analyzer + safety listener)
+    # 2. Pipeline (camera + analyzer + safety listener)
     # ------------------------------------------------------------------
-    print(f"[{_ts()}] [launcher] Starting MQTT demo...")
-    demo = subprocess.Popen(
-        [PYTHON, "mq_handlers_demo.py"],
+    print(f"[{_ts()}] [launcher] Starting pipeline...")
+    pipeline = subprocess.Popen(
+        [PYTHON, "pipeline.py"],
         cwd=MANIPYLATOR_DIR,
     )
-    procs.append(("demo", demo))
-    time.sleep(DEMO_SETTLE_TIME)
+    procs.append(("pipeline", pipeline))
+    time.sleep(PIPELINE_SETTLE_TIME)
 
-    if demo.poll() is not None:
-        print(f"[{_ts()}] [launcher] Demo failed to start (code {demo.returncode})")
+    if pipeline.poll() is not None:
+        print(f"[{_ts()}] [launcher] Pipeline failed to start (code {pipeline.returncode})")
         _stop_children()
         return 1
 
-    print(f"[{_ts()}] [launcher] Demo running (pid {demo.pid})")
+    print(f"[{_ts()}] [launcher] Pipeline running (pid {pipeline.pid})")
 
     # ------------------------------------------------------------------
-    # 3. Display client (OpenCV GUI)
+    # 3. Stream viewer (OpenCV GUI)
     # ------------------------------------------------------------------
-    print(f"[{_ts()}] [launcher] Starting display client...")
+    print(f"[{_ts()}] [launcher] Starting stream viewer...")
     display = subprocess.Popen(
-        [PYTHON, "opencv_client.py"],
+        [PYTHON, "stream_viewer.py"],
         cwd=REPO_ROOT,
     )
-    procs.append(("display_client", display))
-    print(f"[{_ts()}] [launcher] Display client running (pid {display.pid})")
+    procs.append(("stream_viewer", display))
+    print(f"[{_ts()}] [launcher] Stream viewer running (pid {display.pid})")
 
     # ------------------------------------------------------------------
     # Wait until something exits or we get Ctrl+C

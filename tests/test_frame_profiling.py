@@ -4,9 +4,13 @@ Test script to demonstrate frame lifecycle profiling.
 This script shows how old frames are when detection results are reported.
 """
 
+import os
+import sys
 import time
 import json
 from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "manipylator"))
 from tasks import _connect_opencv, _detect_hands_confidence_bgr
 
 

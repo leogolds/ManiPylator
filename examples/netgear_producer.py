@@ -1,8 +1,12 @@
+import os
+
 import cv2
 import numpy as np
 from vidgear.gears import NetGear
 from time import sleep
 from datetime import datetime
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
@@ -20,7 +24,7 @@ def main():
 
     # Read the image from photo.jpeg
     frame = cv2.imread(
-        "/home/leo/repos/ManiPylator/manipylator/photo.jpeg", cv2.IMREAD_COLOR
+        os.path.join(_HERE, "..", "manipylator", "photo.jpeg"), cv2.IMREAD_COLOR
     )
 
     # Try to create server with error handling

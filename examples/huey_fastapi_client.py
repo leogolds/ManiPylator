@@ -6,10 +6,15 @@ as an alternative to NetGear/OpenCVClient.
 """
 
 import json
+import os
+import sys
 import time
+
 import requests
 import paho.mqtt.client as mqtt
 from huey import RedisHuey
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "manipylator"))
 from schemas import parse_payload
 
 # Initialize Huey

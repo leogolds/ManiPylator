@@ -1,6 +1,6 @@
 #!/home/leo/.pyenv/versions/3.10.16/bin/python3.10
 """
-OpenCV display client that discovers cameras via MQTT and fetches frames
+Stream viewer that discovers cameras via MQTT and fetches frames
 from the FastAPI REST endpoint.
 
 Modes:
@@ -8,8 +8,8 @@ Modes:
     --url URL    Skip discovery, fetch frames directly from a known /latest endpoint
 
 Usage:
-    python opencv_client.py                          # auto-discover via MQTT
-    python opencv_client.py --url http://host:8001/latest   # direct URL
+    python stream_viewer.py                          # auto-discover via MQTT
+    python stream_viewer.py --url http://host:8001/latest   # direct URL
 
 Press 'q' to quit, 's' to save the current frame.
 """
@@ -31,7 +31,7 @@ sys.path.insert(0, "manipylator")
 from schemas import StreamInfoV1, StreamStatusV1, HandGuardEventV1, parse_payload
 
 
-class DiscoveryFrameClient:
+class StreamViewer:
     """Discovers cameras over MQTT and fetches frames via the FastAPI /latest endpoint."""
 
     def __init__(
@@ -380,7 +380,7 @@ def main():
         client = DirectFrameClient(args.url, poll_interval=args.interval)
     else:
         print("=== ManiPylator Display Client (MQTT auto-discovery) ===")
-        client = DiscoveryFrameClient(
+        client = StreamViewer(
             broker_host=args.broker, poll_interval=args.interval
         )
 

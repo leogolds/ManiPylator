@@ -5,11 +5,16 @@ This script subscribes to MQTT topics and listens for stream discovery messages.
 """
 
 import json
+import os
+import sys
 import time
+
 import cv2
 import numpy as np
 import requests
 import paho.mqtt.client as mqtt
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "manipylator"))
 from schemas import parse_payload
 
 

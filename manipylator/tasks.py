@@ -36,7 +36,7 @@ from typing import Dict
 
 
 def log_message(component: str, message: str):
-    """Log a message with consistent timestamp formatting like mq_handlers_demo."""
+    """Log a message with consistent timestamp formatting like pipeline.py."""
     timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[
         :-3
     ]  # HH:MM:SS.milliseconds

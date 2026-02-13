@@ -13,7 +13,7 @@ Images tested:
   5. A web-sourced hand photo (expect: HAND_DETECTED)
 
 Usage:
-    python test_synthetic.py [--url http://localhost:8001/latest]
+    python tests/test_hand_detection.py [--url http://localhost:8001/latest]
 """
 from __future__ import annotations
 

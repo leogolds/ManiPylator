@@ -33,8 +33,8 @@ from schemas import (
 from comms import MQClient
 
 
-class LatestFrameCamGear(MQClient):
-    """CamGear wrapper that provides only the latest frame using a deque and publishes to MQTT."""
+class StreamingCamera(MQClient):
+    """Camera device that streams via WebGear MJPEG + FastAPI REST and publishes to MQTT."""
 
     def __init__(
         self,

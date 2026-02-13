@@ -11,12 +11,13 @@ Two measurements run in parallel:
   2. End-to-end MQTT event tracking -- subscribes to hand_guard events and
      records timing from each HandGuardEventV1.
 
-Usage (while the demo is running):
-    python test_latency.py --duration 60 --interval 0.3
+Usage (while the pipeline is running):
+    python tests/test_latency.py --duration 60 --interval 0.3
 """
 
 import argparse
 import json
+import os
 import statistics
 import sys
 import threading
@@ -30,7 +31,7 @@ import numpy as np
 import paho.mqtt.client as mqtt
 import requests
 
-sys.path.insert(0, "manipylator")
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "manipylator"))
 from schemas import HandGuardEventV1, parse_payload
 
 
