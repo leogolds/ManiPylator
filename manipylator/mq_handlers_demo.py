@@ -34,6 +34,8 @@ from schemas import (
     DeviceType,
     DeviceCapability,
     StateStr,
+    StreamInfoV1,
+    StreamStatusV1,
     Encoding,
 )
 
@@ -351,6 +353,15 @@ class HandDetector(MQClient):
         self.proc_id = proc_id
         self.silent = True  # Suppress all hand detector logs
 
+        # Debouncing state: require N consecutive consistent results before
+        # changing published state.  Detections trigger faster (safety-first),
+        # clears require more evidence to avoid premature "all clear".
+        self._detect_threshold = 2   # consecutive detections to publish hand_detected
+        self._clear_threshold = 3    # consecutive clears to publish clear
+        self._consecutive_detects = 0
+        self._consecutive_clears = 0
+        self._published_state = "unknown"  # "hand_detected" | "clear" | "unknown"
+
     def log(self, message):
         """Override log method to suppress hand detector logs."""
         if not self.silent:
@@ -372,19 +383,17 @@ class HandDetector(MQClient):
             from tasks import detect_hands_latest
 
             # Get the stream URL from the trigger message
-            netgear_url = trigger_data.netgear_server
+            stream_url = trigger_data.stream_url
             camera_id = trigger_data.camera_id
             timeout_seconds = trigger_data.timeout_seconds
 
-            # Convert tcp://host:port to http://host:port/video for OpenCV
-            if netgear_url.startswith("tcp://"):
-                opencv_url = netgear_url.replace("tcp://", "http://") + "/video"
-            elif netgear_url.startswith("http://"):
-                # Already an HTTP URL, use as-is
-                opencv_url = netgear_url
+            # Normalize the URL for OpenCV consumption
+            if stream_url.startswith("tcp://"):
+                opencv_url = stream_url.replace("tcp://", "http://") + "/video"
+            elif stream_url.startswith("http://"):
+                opencv_url = stream_url
             else:
-                # Assume it's a host:port format, convert to HTTP
-                opencv_url = f"http://{netgear_url}/video"
+                opencv_url = f"http://{stream_url}/video"
 
             # Schedule hand detection task with Huey for low latency
             try:
@@ -443,16 +452,16 @@ class HandDetector(MQClient):
                 # Success case: extract values from result
                 hand_detected = result.get("detected", False)
                 confidence = result.get("confidence", 0.0)
-                event_type = "hand_detected" if hand_detected else "clear"
+                raw_event_type = "hand_detected" if hand_detected else "clear"
 
-                # Log the analysis result
+                # Log the raw analysis result
                 self.log(
-                    f"Analysis result: {event_type.upper()} (confidence: {confidence:.2f}) for camera {camera_id}"
+                    f"Analysis result: {raw_event_type.upper()} (confidence: {confidence:.2f}) for camera {camera_id}"
                 )
             else:
                 hand_detected = False
                 confidence = 0.0
-                event_type = "clear"
+                raw_event_type = "clear"
                 # Error case: use fallback values and log the error
                 error_msg = (
                     result.get("error", "Unknown error")
@@ -461,6 +470,43 @@ class HandDetector(MQClient):
                 )
                 self.log(f"Hand detection ERROR - {error_msg}")
                 self.log("Using fallback: no hand detected")
+
+            # --- Debounce logic ---
+            # Update consecutive counters based on raw result
+            if raw_event_type == "hand_detected":
+                self._consecutive_detects += 1
+                self._consecutive_clears = 0
+            else:
+                self._consecutive_clears += 1
+                self._consecutive_detects = 0
+
+            # Decide whether to publish a state change
+            should_publish = False
+            if (
+                raw_event_type == "hand_detected"
+                and self._consecutive_detects >= self._detect_threshold
+                and self._published_state != "hand_detected"
+            ):
+                should_publish = True
+                event_type = "hand_detected"
+            elif (
+                raw_event_type == "clear"
+                and self._consecutive_clears >= self._clear_threshold
+                and self._published_state != "clear"
+            ):
+                should_publish = True
+                event_type = "clear"
+
+            if not should_publish:
+                # Log suppressed event for debugging
+                self.log(
+                    f"Debounce: raw={raw_event_type}, published_state={self._published_state}, "
+                    f"consec_detect={self._consecutive_detects}, consec_clear={self._consecutive_clears} -- suppressed"
+                )
+                return
+
+            # State transition confirmed
+            self._published_state = event_type
 
             # Capture analysis end timing
             analysis_end_time_utc = datetime.now(timezone.utc)
@@ -476,7 +522,7 @@ class HandDetector(MQClient):
                     "frame_capture_time_monotonic_ns"
                 ]
 
-            # Create hand guard event (variables are now always defined)
+            # Create hand guard event -- only published on confirmed state transitions
             hand_event = HandGuardEventV1(
                 proc_id=self.proc_id,
                 camera_id=camera_id,
@@ -493,7 +539,7 @@ class HandDetector(MQClient):
 
             self.publish(hand_event.topic, hand_event)
             self.log(
-                f"Published hand event: {event_type} (confidence: {confidence:.2f}) to {hand_event.topic}"
+                f"STATE CHANGE: {event_type.upper()} (confidence: {confidence:.2f}) published to {hand_event.topic}"
             )
 
         except Exception as e:
@@ -502,53 +548,126 @@ class HandDetector(MQClient):
 
 
 class PeriodicHandDetector(HandDetector):
-    """Hand detector that automatically triggers analysis periodically via MQTT trigger channel."""
+    """Hand detector that periodically triggers analysis via MQTT.
+
+    Supports two modes:
+    - Static mode (auto_discover=False): analyzes a single, manually configured camera.
+    - Auto-discovery mode (auto_discover=True): subscribes to MQTT stream discovery
+      topics and automatically triggers analysis for every camera that comes online.
+    """
 
     def __init__(
         self,
         proc_id: str,
-        netgear_server: str = "http://127.0.0.1:8000/video",
+        stream_url: str = "http://127.0.0.1:8000/video",
         camera_id: str = "camera_01",
         interval_seconds: float = 1.0,
+        auto_discover: bool = False,
         **kwargs,
     ):
         # Initialize the parent HandDetector
         super().__init__(proc_id, **kwargs)
 
-        # Store periodic trigger specific parameters
-        self.netgear_server = netgear_server  # Now expects HTTP URL for OpenCV
-        self.camera_id = camera_id
         self.interval_seconds = interval_seconds
         self.trigger_thread = None
         self.running = False
-        self.silent = True  # Suppress all periodic hand detector logs
+        self.auto_discover = auto_discover
+        self.silent = False
 
-    def log(self, message):
-        """Override log method to suppress periodic hand detector logs."""
-        if not self.silent:
-            super().log(message)
+        # Discovery state: camera_id -> {"stream_url": str, "discovered_at": float}
+        self.discovered_cameras: Dict[str, dict] = {}
+
+        if auto_discover:
+            # Subscribe to stream discovery and status topics
+            self.subscriptions.append("manipylator/streams/+/info")
+            self.subscriptions.append("manipylator/streams/+/status")
+            self.message_handlers["manipylator/stream/info/v1"] = (
+                self._handle_stream_info
+            )
+            self.message_handlers["manipylator/stream/status/v1"] = (
+                self._handle_stream_status
+            )
+        else:
+            # Static configuration -- single camera
+            self.static_stream_url = stream_url
+            self.static_camera_id = camera_id
+
+    def _handle_stream_info(self, stream_info: StreamInfoV1):
+        """Handle a stream discovery message. Registers or updates a camera."""
+        camera_id = stream_info.camera_id
+
+        # Prefer the WebGear/OpenCV MJPEG stream URL (works with cv2.VideoCapture)
+        stream_url = None
+        if stream_info.vidgear and stream_info.vidgear.address:
+            stream_url = stream_info.vidgear.address
+
+        if not stream_url:
+            self.log(
+                f"Ignoring stream info for {camera_id}: no usable stream URL found"
+            )
+            return
+
+        is_new = camera_id not in self.discovered_cameras
+        self.discovered_cameras[camera_id] = {
+            "stream_url": stream_url,
+            "discovered_at": time.time(),
+        }
+
+        if is_new:
+            self.log(f"Discovered camera '{camera_id}' at {stream_url}")
+        else:
+            self.log(f"Updated camera '{camera_id}' -> {stream_url}")
+
+    def _handle_stream_status(self, stream_status: StreamStatusV1):
+        """Handle a stream status message. Removes cameras that go offline."""
+        camera_id = stream_status.camera_id
+
+        if stream_status.state == StateStr.offline:
+            if camera_id in self.discovered_cameras:
+                del self.discovered_cameras[camera_id]
+                self.log(f"Camera '{camera_id}' went offline, removed from discovery")
 
     def _trigger_loop(self):
         """Background thread loop that schedules detection at regular intervals."""
         while self.running:
             try:
-                trigger_time = datetime.now(timezone.utc)
-                trigger_event = AnalysisTriggerV1(
-                    proc_id=self.proc_id,
-                    camera_id=self.camera_id,
-                    netgear_server=self.netgear_server,
-                    trigger_type="timer",
-                    analysis_type="hand_detection",
-                    timeout_seconds=10,
-                )
-                self.publish(trigger_event.topic, trigger_event)
-                self.log(
-                    f"Published trigger at {trigger_time.strftime('%H:%M:%S.%f')[:-3]}"
-                )
+                if self.auto_discover:
+                    self._trigger_discovered_cameras()
+                else:
+                    self._trigger_static_camera()
+
                 time.sleep(self.interval_seconds)
             except Exception as e:
                 self.log(f"Error in trigger loop: {e}")
-                time.sleep(self.interval_seconds)  # Still wait even on error
+                time.sleep(self.interval_seconds)
+
+    def _trigger_discovered_cameras(self):
+        """Publish an analysis trigger for every discovered camera."""
+        if not self.discovered_cameras:
+            return  # Nothing to do yet; discovery messages will arrive asynchronously
+
+        for camera_id, camera_info in list(self.discovered_cameras.items()):
+            trigger_event = AnalysisTriggerV1(
+                proc_id=self.proc_id,
+                camera_id=camera_id,
+                stream_url=camera_info["stream_url"],
+                trigger_type="timer",
+                analysis_type="hand_detection",
+                timeout_seconds=10,
+            )
+            self.publish(trigger_event.topic, trigger_event)
+
+    def _trigger_static_camera(self):
+        """Publish an analysis trigger for the statically configured camera."""
+        trigger_event = AnalysisTriggerV1(
+            proc_id=self.proc_id,
+            camera_id=self.static_camera_id,
+            stream_url=self.static_stream_url,
+            trigger_type="timer",
+            analysis_type="hand_detection",
+            timeout_seconds=10,
+        )
+        self.publish(trigger_event.topic, trigger_event)
 
     def start_periodic_trigger(self):
         """Start the periodic trigger thread."""
@@ -568,28 +687,24 @@ class PeriodicHandDetector(HandDetector):
     def run(self):
         """Run the periodic hand detector with main loop."""
         try:
-            # Set up MQTT client
             self._setup_mq()
-
-            # Wait for MQTT connection to be established
             time.sleep(0.5)
+
+            mode = "auto-discovery" if self.auto_discover else "static"
+            self.log(f"Starting in {mode} mode, interval={self.interval_seconds}s")
 
             self.start_periodic_trigger()
 
-            # Keep running to process messages and periodic triggers
             while self.running:
                 time.sleep(0.1)
         except KeyboardInterrupt:
             self.log("Received interrupt signal")
         finally:
-            # Stop periodic trigger thread
             self.stop_periodic_trigger()
-            # Clean up MQTT client
             self._cleanup_mq()
 
     def __del__(self):
         """Cleanup when the object is garbage collected."""
-        # Note: This is not guaranteed to be called, but it's a safety net
         if hasattr(self, "running") and self.running:
             self.stop_periodic_trigger()
 
@@ -805,92 +920,85 @@ class SafetyListener(MQClient):
 
 
 def run_demo():
-    """Run the complete demo with all components."""
-    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
-    print(f"[{timestamp}] Starting ManiPylator MQTT Demo...")
-    print("=" * 50)
+    """Run the complete demo with all components.
 
-    # Create components
-    camera_id = "demo_cam_01"
+    The camera publishes its stream info to MQTT on startup. The analyzer
+    discovers it automatically and begins periodic hand-detection analysis.
+    The safety listener prints results with debouncing.
+
+    Prerequisites:
+    - MQTT broker running on localhost:1883
+    - Redis running on localhost:6379 (for Huey task queue)
+    - Huey worker:  huey_consumer.py tasks.huey -w 2
+    """
+    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
+    print(f"[{timestamp}] Starting ManiPylator MQTT Demo (auto-discovery)...")
+    print("=" * 60)
+
+    # Create components -- the analyzer uses auto-discovery so it does not
+    # need to know the camera_id or stream URL ahead of time.
     camera = LatestFrameCamGear(
-        camera_id=camera_id,
-        source=0,  # Default camera
+        camera_id="demo_cam_01",
+        source=0,
         target_fps=30,
         webgear_port=8000,
         webgear_host="localhost",
     )
     analyzer = PeriodicHandDetector(
         "hand_detector_01",
-        camera_id=camera_id,
-        netgear_server="http://127.0.0.1:8000/video",
+        auto_discover=True,
+        interval_seconds=0.3,
     )
     listener = SafetyListener(min_clear_signals=1)
 
     try:
-        # Start components in separate threads
+        # Start all components in daemon threads
         camera_thread = threading.Thread(target=camera.run, daemon=True)
         analyzer_thread = threading.Thread(target=analyzer.run, daemon=True)
         listener_thread = threading.Thread(target=listener.run, daemon=True)
 
         camera_thread.start()
-        # analyzer_thread.start()
-        # listener_thread.start()
+        analyzer_thread.start()
+        listener_thread.start()
 
-        # Give them time to start up
         time.sleep(1)
 
         timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
         print(f"\n[{timestamp}] Demo is running! Press Ctrl+C to stop.")
-        print("You should see:")
-        print("- Camera device providing NetGear streaming service on port 5555")
-        print("- Camera publishing device announcements and heartbeats to MQTT")
-        print("- Camera publishing frame notifications to trigger HandDetector")
-        print(
-            "- Analysis processor receiving MQTT notifications and connecting to NetGear for MediaPipe hand detection"
-        )
-        print(
-            "- Listener printing hand detection results with timestamps and debouncing"
-        )
-        print("- All devices publishing their device information and status")
-        print("\nNote: Make sure Redis is running for the Huey task queue!")
-        print(
-            "Note: OpenCV clients can connect to http://127.0.0.1:8000/video to receive frames"
-        )
-        print(
-            "Note: HandDetector is triggered by MQTT frame notifications, then connects to OpenCV stream"
-        )
-        print(
-            "Note: SafetyListener uses debouncing - hand detection is immediate, clear requires 3 consecutive signals"
-        )
-        print("\n" + "=" * 50)
+        print("Flow:")
+        print("  1. Camera publishes stream info to MQTT")
+        print("  2. Analyzer auto-discovers the camera via MQTT")
+        print("  3. Analyzer triggers periodic hand-detection (via Huey)")
+        print("  4. Safety listener prints results with debouncing")
+        print()
+        print("Prerequisites:")
+        print("  - Redis running on localhost:6379")
+        print("  - Huey worker: huey_consumer.py tasks.huey -w 2")
+        print()
+        print("Endpoints:")
+        print("  - MJPEG stream:  http://localhost:8000/video")
+        print("  - FastAPI:       http://localhost:8001/latest")
+        print("=" * 60)
 
-        # Keep main thread alive
         while True:
             time.sleep(1)
 
     except KeyboardInterrupt:
         timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
         print(f"\n[{timestamp}] Stopping demo...")
-        # Signal components to stop
         camera.running = False
         analyzer.running = False
         listener.running = False
     finally:
-        # Wait for threads to finish
-        try:
-            camera_thread.join(timeout=2.0)
-        except Exception as e:
-            print(f"Error joining camera thread: {e}")
-
-        try:
-            analyzer_thread.join(timeout=2.0)
-        except Exception as e:
-            print(f"Error joining analyzer thread: {e}")
-
-        try:
-            listener_thread.join(timeout=2.0)
-        except Exception as e:
-            print(f"Error joining listener thread: {e}")
+        for name, thread in [
+            ("camera", camera_thread),
+            ("analyzer", analyzer_thread),
+            ("listener", listener_thread),
+        ]:
+            try:
+                thread.join(timeout=2.0)
+            except Exception as e:
+                print(f"Error joining {name} thread: {e}")
 
         timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
         print(f"[{timestamp}] Demo stopped.")

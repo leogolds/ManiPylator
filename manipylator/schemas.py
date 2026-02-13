@@ -315,8 +315,9 @@ class AnalysisTriggerV1(MessageBase):
     )
     proc_id: ProcID
     camera_id: CameraID
-    netgear_server: str = Field(
-        ..., description="NetGear server address (e.g., tcp://host:port)"
+    stream_url: str = Field(
+        ...,
+        description="Stream URL to fetch frames from (e.g., http://host:port/video)",
     )
     trigger_type: Literal["manual", "timer", "event"] = "manual"
     analysis_type: Literal["hand_detection", "object_detection", "custom"] = (

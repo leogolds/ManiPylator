@@ -217,7 +217,7 @@ class OpenCVClient:
         self.latest_frame = deque(maxlen=1)
         self.latest_frame_timestamp = deque(maxlen=1)
         self.frame_thread = None
-        self.target_dt = 1.0 / target_fps if target_fps else 0.0
+        self.created_at = time.time()
         self.connect()
 
     def connect(self):
@@ -246,10 +246,15 @@ class OpenCVClient:
         self.frame_thread.start()
 
     def _update_frames(self):
-        """Background thread that continuously reads frames and updates deque."""
-        next_time = time.time()
+        """Background thread that continuously reads frames and updates deque.
+
+        Reads as fast as possible to drain the OpenCV internal MJPEG buffer,
+        ensuring the deque always contains the most recent frame.  cap.read()
+        blocks naturally when no frame is available, so we never busy-wait.
+        """
         frame_count = 0
         first_frame_time = None
+        start_time = time.time()
 
         while self.running:
             ret, frame = self.cap.read()
@@ -266,23 +271,15 @@ class OpenCVClient:
 
                 self.latest_frame.append(frame)
                 self.latest_frame_timestamp.append(frame_timestamp)
-
-                # Frame rate control
-                if self.target_dt:
-                    next_time += self.target_dt
-                    sleep_time = max(0.0, next_time - time.time())
-                    if sleep_time > 0:
-                        time.sleep(sleep_time)
-                else:
-                    time.sleep(0.001)
+                # No sleep -- read as fast as possible to drain the MJPEG
+                # buffer.  The deque(maxlen=1) keeps only the latest frame.
             else:
-                if (
-                    frame_count == 0 and time.time() - next_time > 5.0
-                ):  # Log after 5 seconds of no frames
+                if frame_count == 0 and time.time() - start_time > 5.0:
                     log_message(
                         "opencv_client",
                         f"Background thread: No frames received after 5s, {frame_count} attempts",
                     )
+                    start_time = time.time()  # avoid log spam
                 time.sleep(0.001)
 
     def recv_latest(self):
@@ -294,6 +291,18 @@ class OpenCVClient:
         if self.latest_frame and self.latest_frame_timestamp:
             return self.latest_frame[-1], self.latest_frame_timestamp[-1]
         return None, None
+
+    def is_stale(self, max_age_seconds: float = 5.0) -> bool:
+        """Return True if the latest frame is older than max_age_seconds.
+        New connections get a grace period before being considered stale."""
+        # Give new connections time to receive their first frame
+        connection_age = time.time() - self.created_at
+        if connection_age < max_age_seconds:
+            return False
+        if not self.latest_frame_timestamp:
+            return True
+        age = time.time() - self.latest_frame_timestamp[-1]
+        return age > max_age_seconds
 
     def close(self):
         """Close the OpenCV client and cleanup resources."""
@@ -309,6 +318,20 @@ class OpenCVClient:
 def _connect_opencv(url: str, target_fps: int = 30) -> OpenCVClient:
     """Create a cached OpenCV client from URL."""
     return OpenCVClient(url, target_fps)
+
+
+def _get_opencv_client(url: str, target_fps: int = 30) -> OpenCVClient:
+    """Get a cached OpenCV client, reconnecting if the connection is stale."""
+    client = _connect_opencv(url, target_fps)
+    if client.is_stale(max_age_seconds=5.0):
+        log_message(
+            "opencv_client",
+            f"Cached connection to {url} is stale, reconnecting...",
+        )
+        client.close()
+        _connect_opencv.cache_clear()
+        client = _connect_opencv(url, target_fps)
+    return client
 
 
 def clear_opencv_cache():
@@ -369,9 +392,9 @@ def detect_hands_latest(
     profile = {}
 
     try:
-        # Profile: OpenCV connection
+        # Profile: OpenCV connection (with auto-reconnect on stale)
         connect_start = time.time()
-        client = _connect_opencv(opencv_url, target_fps)
+        client = _get_opencv_client(opencv_url, target_fps)
         connect_end = time.time()
         profile["opencv_connect_ms"] = (connect_end - connect_start) * 1000
         log_message(
