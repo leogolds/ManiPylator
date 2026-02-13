@@ -986,17 +986,27 @@ def run_demo():
     except KeyboardInterrupt:
         timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
         print(f"\n[{timestamp}] Stopping demo...")
+    finally:
+        # Signal all components to stop
         camera.running = False
         analyzer.running = False
         listener.running = False
-    finally:
+
+        # Explicitly trigger camera cleanup (idempotent) so that
+        # CamGear releases /dev/videoN and uvicorn releases its ports
+        # even if the thread join times out.
+        try:
+            camera.stop()
+        except Exception as e:
+            print(f"Error during camera cleanup: {e}")
+
         for name, thread in [
             ("camera", camera_thread),
             ("analyzer", analyzer_thread),
             ("listener", listener_thread),
         ]:
             try:
-                thread.join(timeout=2.0)
+                thread.join(timeout=5.0)
             except Exception as e:
                 print(f"Error joining {name} thread: {e}")
 

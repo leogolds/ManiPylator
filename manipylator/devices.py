@@ -88,6 +88,13 @@ class LatestFrameCamGear(MQClient):
         self.target_dt = 1.0 / target_fps if target_fps else 0.0
         self.silent = True  # Suppress all camera logs
 
+        # Uvicorn server handles (for graceful shutdown)
+        self._webgear_server = None
+        self._fastapi_server = None
+        self._webgear_thread = None
+        self._fastapi_thread = None
+        self._camera_cleaned_up = False
+
         # Stream info for discovery
         self.stream_info = None
 
@@ -249,7 +256,6 @@ class LatestFrameCamGear(MQClient):
             try:
                 frame = self.camgear.read()
                 if frame is not None:
-                    # print(f"{datetime.now()} updating frame")
                     self.latest_frame.append(frame)
                     self.frame_counter += 1
 
@@ -258,6 +264,9 @@ class LatestFrameCamGear(MQClient):
                         self._publish_frame_snapshot(frame)
 
             except Exception as e:
+                # CamGear was likely stopped; exit the loop cleanly
+                if not self.running:
+                    break
                 self.log(f"Error reading frame: {e}")
 
             # Frame rate control
@@ -426,24 +435,65 @@ class LatestFrameCamGear(MQClient):
         self.log("Camera setup complete")
 
     def _cleanup_camera(self):
-        """Clean up camera resources."""
+        """Clean up camera resources.
+
+        Idempotent -- safe to call more than once.  Cleanup order matters:
+        1. Signal uvicorn servers to exit (non-blocking).
+        2. Stop CamGear *before* joining the frame thread so that
+           ``camgear.read()`` returns ``None`` and unblocks the thread.
+        3. Join the frame thread (should exit almost instantly now).
+        4. Shut down the WebGear ASGI application.
+        5. Join uvicorn server threads (they exit once ``should_exit`` is set).
+        6. Publish offline status while MQTT is still connected.
+        """
+        if self._camera_cleaned_up:
+            return
+        self._camera_cleaned_up = True
+
         self.log("Cleaning up camera...")
         self.running = False
 
-        # Stop frame thread
-        if self.frame_thread:
-            self.frame_thread.join(timeout=2.0)
+        # 1. Signal uvicorn servers to exit
+        for srv in (self._webgear_server, self._fastapi_server):
+            if srv is not None:
+                srv.should_exit = True
 
-        # Stop camera
+        # 2. Stop CamGear (releases cv2.VideoCapture)
         if self.camgear:
-            self.camgear.stop()
+            try:
+                self.camgear.stop()
+            except Exception as e:
+                self.log(f"Error stopping CamGear: {e}")
+            self.camgear = None
 
-        # Stop WebGear
+        # 3. Join frame thread -- should exit quickly now
+        if self.frame_thread:
+            self.frame_thread.join(timeout=3.0)
+            if self.frame_thread.is_alive():
+                self.log("Warning: frame thread did not exit in time")
+
+        # 4. Shut down WebGear ASGI app
         if self.webgear:
-            self.webgear.shutdown()
+            try:
+                self.webgear.shutdown()
+            except Exception as e:
+                self.log(f"Error shutting down WebGear: {e}")
 
-        # Publish offline status
-        self._publish_stream_status(StateStr.offline)
+        # 5. Wait for uvicorn server threads
+        for name, thr in [
+            ("webgear", self._webgear_thread),
+            ("fastapi", self._fastapi_thread),
+        ]:
+            if thr is not None and thr.is_alive():
+                thr.join(timeout=3.0)
+                if thr.is_alive():
+                    self.log(f"Warning: {name} server thread did not exit in time")
+
+        # 6. Publish offline status (MQTT still connected at this point)
+        try:
+            self._publish_stream_status(StateStr.offline)
+        except Exception:
+            pass
 
         self.log("Camera cleanup complete")
 
@@ -462,35 +512,32 @@ class LatestFrameCamGear(MQClient):
         try:
             self._setup_mq()
 
-            # Start WebGear server in a separate thread
-            def run_webgear():
-                try:
-                    uvicorn.run(
-                        self.webgear,
-                        host=self.webgear_host,
-                        port=self.webgear_port,
-                        log_level="warning",
-                    )
-                except Exception as e:
-                    self.log(f"WebGear error: {e}")
+            # Use uvicorn.Server so we can signal graceful shutdown later
+            webgear_cfg = uvicorn.Config(
+                self.webgear,
+                host=self.webgear_host,
+                port=self.webgear_port,
+                log_level="warning",
+            )
+            self._webgear_server = uvicorn.Server(webgear_cfg)
 
-            # Start FastAPI server in a separate thread
-            def run_fastapi():
-                try:
-                    uvicorn.run(
-                        self.fastapi_app,
-                        host=self.webgear_host,
-                        port=self.webgear_port + 1,  # Use next port for FastAPI
-                        log_level="warning",
-                    )
-                except Exception as e:
-                    self.log(f"FastAPI error: {e}")
+            fastapi_cfg = uvicorn.Config(
+                self.fastapi_app,
+                host=self.webgear_host,
+                port=self.webgear_port + 1,
+                log_level="warning",
+            )
+            self._fastapi_server = uvicorn.Server(fastapi_cfg)
 
-            webgear_thread = threading.Thread(target=run_webgear, daemon=True)
-            webgear_thread.start()
+            self._webgear_thread = threading.Thread(
+                target=self._webgear_server.run, daemon=True
+            )
+            self._webgear_thread.start()
 
-            fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
-            fastapi_thread.start()
+            self._fastapi_thread = threading.Thread(
+                target=self._fastapi_server.run, daemon=True
+            )
+            self._fastapi_thread.start()
 
             self.log(
                 f"WebGear streaming started at http://{self.webgear_host}:{self.webgear_port}"
@@ -512,7 +559,6 @@ class LatestFrameCamGear(MQClient):
             self._cleanup_mq()
 
     def stop(self):
-        """Stop the camera and cleanup resources."""
-        self.log("Stopping camera...")
+        """Stop the camera and cleanup resources (idempotent)."""
         self.running = False
         self._cleanup_camera()
