@@ -177,8 +177,10 @@ class DeviceHealthV1(MessageBase):
 
 
 class ConnectionInfo(BaseModel):
-    class_name: Literal["NetGear_Async", "NetGear", "WebGear"] = "NetGear_Async"
-    pattern: Literal["pub", "sub", "pub-sub"] = "pub-sub"
+    class_name: Literal["NetGear_Async", "NetGear", "WebGear", "FastAPI"] = (
+        "NetGear_Async"
+    )
+    pattern: Literal["pub", "sub", "pub-sub", "rest"] = "pub-sub"
     address: constr(
         min_length=6, max_length=128
     )  # e.g., tcp://host:5555 or http://host:port
@@ -187,10 +189,32 @@ class ConnectionInfo(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class FastAPIEndpointInfo(BaseModel):
+    """Information about a FastAPI endpoint for discovery."""
+
+    endpoint_url: str = Field(description="Full URL to the endpoint")
+    method: Literal["GET", "POST", "PUT", "DELETE"] = "GET"
+    description: Optional[str] = Field(None, description="Human-readable description")
+    response_type: Optional[str] = Field(
+        None, description="Expected response MIME type"
+    )
+    headers: Dict[str, str] = Field(
+        default_factory=dict, description="Required or optional headers"
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class StreamInfoV1(MessageBase):
     message_schema: Literal["manipylator/stream/info/v1"] = "manipylator/stream/info/v1"
     camera_id: CameraID
     vidgear: ConnectionInfo
+    fastapi: Optional[ConnectionInfo] = Field(
+        None, description="FastAPI REST API connection info"
+    )
+    fastapi_endpoints: Optional[Dict[str, FastAPIEndpointInfo]] = Field(
+        None, description="Available FastAPI endpoints"
+    )
     notes: Optional[str] = None
 
     @property

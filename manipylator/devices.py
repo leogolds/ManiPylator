@@ -10,6 +10,8 @@ from typing import Optional, List, Dict, Callable
 import cv2
 import paho.mqtt.client as mqtt
 import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import Response
 from pydantic import ValidationError
 from vidgear.gears.asyncio import WebGear_RTC, WebGear
 from vidgear.gears.camgear import CamGear
@@ -25,6 +27,7 @@ from schemas import (
     StreamStatusV1,
     FrameSnapshotV1,
     ConnectionInfo,
+    FastAPIEndpointInfo,
     Encoding,
 )
 from comms import MQClient
@@ -62,6 +65,8 @@ class LatestFrameCamGear(MQClient):
             device_endpoints={
                 "webgear": f"http://{webgear_host}:{webgear_port}",
                 "opencv": f"http://{webgear_host}:{webgear_port}/video",
+                "fastapi": f"http://{webgear_host}:{webgear_port + 1}",
+                "latest_frame": f"http://{webgear_host}:{webgear_port + 1}/latest",
             },
             device_owner=device_owner,
         )
@@ -85,6 +90,116 @@ class LatestFrameCamGear(MQClient):
 
         # Stream info for discovery
         self.stream_info = None
+
+        # FastAPI app for REST endpoints
+        self.fastapi_app = FastAPI(title=f"Camera {camera_id} API", version="1.0.0")
+        self._setup_fastapi_routes()
+
+    def _setup_fastapi_routes(self):
+        """Set up FastAPI routes for the camera."""
+
+        @self.fastapi_app.get("/")
+        async def root():
+            """Root endpoint with API information."""
+            return {
+                "message": f"Camera {self.camera_id} API",
+                "version": "1.0.0",
+                "endpoints": {
+                    "latest_frame": "/latest",
+                    "health": "/health",
+                    "info": "/info",
+                },
+            }
+
+        @self.fastapi_app.get("/health")
+        async def health_check():
+            """Health check endpoint."""
+            return {
+                "status": "healthy" if self.running else "stopped",
+                "camera_id": self.camera_id,
+                "has_frame": len(self.latest_frame) > 0,
+                "frame_count": self.frame_counter,
+                "target_fps": self.target_fps,
+            }
+
+        @self.fastapi_app.get("/info")
+        async def camera_info():
+            """Get camera information and status."""
+            return {
+                "camera_id": self.camera_id,
+                "device_vendor": self.device_vendor,
+                "device_model": self.device_model,
+                "target_fps": self.target_fps,
+                "webgear_port": self.webgear_port,
+                "fastapi_port": self.webgear_port + 1,
+                "running": self.running,
+                "frame_count": self.frame_counter,
+                "has_latest_frame": len(self.latest_frame) > 0,
+                "latest_frame_resolution": (
+                    f"{self.latest_frame[-1].shape[1]}x{self.latest_frame[-1].shape[0]}"
+                    if self.latest_frame
+                    else None
+                ),
+            }
+
+        @self.fastapi_app.get("/latest")
+        async def get_latest_frame():
+            """Get the latest frame as JPEG with metadata in response body."""
+            if not self.latest_frame:
+                raise HTTPException(status_code=404, detail="No frame available")
+
+            try:
+                # Get the latest frame
+                frame = self.latest_frame[-1]
+
+                # Encode frame as JPEG
+                success, encoded_image = cv2.imencode(".jpg", frame)
+                if not success:
+                    raise HTTPException(
+                        status_code=500, detail="Failed to encode frame"
+                    )
+
+                # Get frame dimensions
+                height, width = frame.shape[:2]
+
+                # Create metadata
+                frame_capture_time_utc = datetime.now(timezone.utc)
+                frame_capture_time_monotonic_ns = int(time.monotonic_ns())
+
+                metadata = {
+                    "camera_id": self.camera_id,
+                    "frame_id": self.frame_counter,
+                    "width": width,
+                    "height": height,
+                    "encoding": "jpeg",
+                    "frame_capture_time_utc": frame_capture_time_utc.isoformat(),
+                    "frame_capture_time_monotonic_ns": frame_capture_time_monotonic_ns,
+                    "target_fps": self.target_fps,
+                    "timestamp": time.time(),
+                }
+
+                # Return JPEG with metadata in response body
+                return Response(
+                    content=encoded_image.tobytes(),
+                    media_type="image/jpeg",
+                    headers={
+                        "X-Frame-Metadata": json.dumps(metadata),
+                        "X-Camera-ID": self.camera_id,
+                        "X-Frame-ID": str(self.frame_counter),
+                        "X-Frame-Width": str(width),
+                        "X-Frame-Height": str(height),
+                    },
+                )
+
+            except Exception as e:
+                self.log(f"Error in /latest endpoint: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"Internal server error: {str(e)}"
+                )
+
+    def get_fastapi_app(self):
+        """Get the FastAPI app instance for external use."""
+        return self.fastapi_app
 
     def log(self, message):
         """Override log method to suppress camera logs."""
@@ -134,7 +249,7 @@ class LatestFrameCamGear(MQClient):
             try:
                 frame = self.camgear.read()
                 if frame is not None:
-                    print(f"{datetime.now()} updating frame")
+                    # print(f"{datetime.now()} updating frame")
                     self.latest_frame.append(frame)
                     self.frame_counter += 1
 
@@ -216,10 +331,63 @@ class LatestFrameCamGear(MQClient):
             self.log(f"Error publishing frame snapshot: {e}")
 
     def _publish_stream_info(self):
-        """Publish stream discovery information."""
+        """Publish stream discovery information including FastAPI endpoints."""
         if self.stream_info:
+            # Create FastAPI connection info
+            fastapi_connection = ConnectionInfo(
+                class_name="FastAPI",
+                pattern="rest",
+                address=f"http://{self.webgear_host}:{self.webgear_port + 1}",
+                options={
+                    "title": f"Camera {self.camera_id} API",
+                    "version": "1.0.0",
+                    "description": f"REST API for camera {self.camera_id} with frame access endpoints",
+                },
+            )
+
+            # Create FastAPI endpoints info
+            fastapi_endpoints = {
+                "latest_frame": FastAPIEndpointInfo(
+                    endpoint_url=f"http://{self.webgear_host}:{self.webgear_port + 1}/latest",
+                    method="GET",
+                    description="Get the latest camera frame as JPEG with metadata in headers",
+                    response_type="image/jpeg",
+                    headers={
+                        "X-Frame-Metadata": "JSON metadata about the frame",
+                        "X-Camera-ID": "Camera identifier",
+                        "X-Frame-ID": "Frame counter",
+                        "X-Frame-Width": "Frame width in pixels",
+                        "X-Frame-Height": "Frame height in pixels",
+                    },
+                ),
+                "health": FastAPIEndpointInfo(
+                    endpoint_url=f"http://{self.webgear_host}:{self.webgear_port + 1}/health",
+                    method="GET",
+                    description="Health check endpoint",
+                    response_type="application/json",
+                ),
+                "info": FastAPIEndpointInfo(
+                    endpoint_url=f"http://{self.webgear_host}:{self.webgear_port + 1}/info",
+                    method="GET",
+                    description="Detailed camera information",
+                    response_type="application/json",
+                ),
+                "root": FastAPIEndpointInfo(
+                    endpoint_url=f"http://{self.webgear_host}:{self.webgear_port + 1}/",
+                    method="GET",
+                    description="API root with available endpoints",
+                    response_type="application/json",
+                ),
+            }
+
+            # Update stream info with FastAPI information
+            self.stream_info.fastapi = fastapi_connection
+            self.stream_info.fastapi_endpoints = fastapi_endpoints
+
             self.publish(self.stream_info.topic, self.stream_info, retain=True)
-            self.log(f"Published stream info to {self.stream_info.topic}")
+            self.log(
+                f"Published stream info with FastAPI endpoints to {self.stream_info.topic}"
+            )
 
     def _publish_stream_status(
         self, state: StateStr = StateStr.online, fps: float = None
@@ -290,7 +458,7 @@ class LatestFrameCamGear(MQClient):
         super()._cleanup_mq()
 
     def run(self):
-        """Run the camera client with WebGear streaming."""
+        """Run the camera client with WebGear streaming and FastAPI REST API."""
         try:
             self._setup_mq()
 
@@ -306,11 +474,32 @@ class LatestFrameCamGear(MQClient):
                 except Exception as e:
                     self.log(f"WebGear error: {e}")
 
+            # Start FastAPI server in a separate thread
+            def run_fastapi():
+                try:
+                    uvicorn.run(
+                        self.fastapi_app,
+                        host=self.webgear_host,
+                        port=self.webgear_port + 1,  # Use next port for FastAPI
+                        log_level="warning",
+                    )
+                except Exception as e:
+                    self.log(f"FastAPI error: {e}")
+
             webgear_thread = threading.Thread(target=run_webgear, daemon=True)
             webgear_thread.start()
 
+            fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
+            fastapi_thread.start()
+
             self.log(
                 f"WebGear streaming started at http://{self.webgear_host}:{self.webgear_port}"
+            )
+            self.log(
+                f"FastAPI REST API started at http://{self.webgear_host}:{self.webgear_port + 1}"
+            )
+            self.log(
+                f"Latest frame endpoint available at http://{self.webgear_host}:{self.webgear_port + 1}/latest"
             )
 
             # Keep running to process messages
