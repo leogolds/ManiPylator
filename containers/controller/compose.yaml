@@ -161,6 +161,19 @@ services:
       - ./config/mosquitto:/etc/mosquitto
       - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
 
+  tq:
+    image: redis:7-alpine
+    hostname: redis
+    restart: unless-stopped
+    profiles:
+      - full
+      - simulated
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - redis-data:/data
+    command: redis-server --appendonly yes
+
   make:
     image: mkuf/klipper:latest-tools
     tty: true
@@ -201,3 +214,4 @@ volumes:
     driver_opts:
       type: tmpfs
       device: tmpfs
+  redis-data:

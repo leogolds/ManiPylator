@@ -233,3 +233,4 @@ robots/measured/
 **/out
 *.bak2
 *.bak
+*.backup

@@ -4,3 +4,6 @@ roboticstoolbox-python==1.1.1
 numpy<2
 paho-mqtt==2.1.0
 hvplot==0.11.3
+opencv-python==4.8.1.78
+mediapipe==0.10.7
+huey==2.4.3
