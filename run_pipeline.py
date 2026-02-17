@@ -66,9 +66,9 @@ def main():
     # ------------------------------------------------------------------
     print(f"[{_ts()}] [launcher] Starting Huey worker...")
     huey = subprocess.Popen(
-        [PYTHON, "-m", "huey.bin.huey_consumer", "tasks.huey",
+        [PYTHON, "-m", "huey.bin.huey_consumer", "manipylator.tasks.huey",
          "-w", "2", "-k", "process"],
-        cwd=MANIPYLATOR_DIR,
+        cwd=REPO_ROOT,
     )
     procs.append(("huey_worker", huey))
     time.sleep(HUEY_SETTLE_TIME)
@@ -85,8 +85,8 @@ def main():
     # ------------------------------------------------------------------
     print(f"[{_ts()}] [launcher] Starting pipeline...")
     pipeline = subprocess.Popen(
-        [PYTHON, "pipeline.py"],
-        cwd=MANIPYLATOR_DIR,
+        [PYTHON, "-m", "manipylator.pipeline"],
+        cwd=REPO_ROOT,
     )
     procs.append(("pipeline", pipeline))
     time.sleep(PIPELINE_SETTLE_TIME)

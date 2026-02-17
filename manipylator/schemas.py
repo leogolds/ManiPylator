@@ -75,6 +75,7 @@ class MessageBase(BaseModel):
 class DeviceType(str, Enum):
     camera = "camera"
     sensor = "sensor"
+    robot = "robot"
     other = "other"
 
 
@@ -104,6 +105,7 @@ class DeviceCapability(str, Enum):
     distance_sensing = "distance_sensing"
     safety_monitoring = "safety_monitoring"
     robot_control = "robot_control"
+    robot_state = "robot_state"
 
 
 class DeviceAboutV1(MessageBase):
@@ -492,6 +494,25 @@ class ControlFeedbackV1(MessageBase):
 
 
 # ---------------------------
+# Robot state
+# ---------------------------
+
+
+class RobotStateV1(MessageBase):
+    message_schema: Literal["manipylator/robot/state/v1"] = (
+        "manipylator/robot/state/v1"
+    )
+    robot_id: RobotID
+    q: List[float] = Field(description="Joint angles in radians")
+    gripper: Optional[float] = None
+    source: Literal["physical", "simulated", "headless"] = "simulated"
+
+    @property
+    def topic(self) -> str:
+        return f"manipylator/robots/{self.robot_id}/state"
+
+
+# ---------------------------
 # System-wide messages
 # ---------------------------
 
@@ -564,6 +585,7 @@ AnyMessage = Union[
     SafetyEventV1,
     ControlCmdV1,
     ControlFeedbackV1,
+    RobotStateV1,
     SystemDiscoveryV1,
     SystemHealthV1,
     ErrorEventV1,
@@ -585,6 +607,7 @@ SCHEMA_TO_MODEL: Dict[str, type[MessageBase]] = {
     "manipylator/safety/event/v1": SafetyEventV1,
     "manipylator/control/command/v1": ControlCmdV1,
     "manipylator/control/feedback/v1": ControlFeedbackV1,
+    "manipylator/robot/state/v1": RobotStateV1,
     "manipylator/system/discovery/v1": SystemDiscoveryV1,
     "manipylator/system/health/v1": SystemHealthV1,
     "manipylator/system/error/v1": ErrorEventV1,

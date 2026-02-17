@@ -8,7 +8,7 @@ Components:
 3. SafetyListener      -- subscribes to hand-guard events, debounces and logs state changes
 
 Entry point:
-    python -m manipylator.pipeline       (or: python manipylator/pipeline.py)
+    python -m manipylator.pipeline
 """
 
 import json
@@ -21,9 +21,9 @@ import threading
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
 
-from comms import MQClient
-from devices import StreamingCamera
-from schemas import (
+from .comms import MQClient
+from .devices import StreamingCamera
+from .schemas import (
     AnalysisTriggerV1,
     HandGuardEventV1,
     DeviceType,
@@ -93,7 +93,7 @@ class HandDetector(MQClient):
             analysis_start_time_monotonic_ns = int(time.monotonic_ns())
 
             # Use the detect_hands_latest task from tasks.py
-            from tasks import detect_hands_latest
+            from .tasks import detect_hands_latest
 
             # Get the stream URL from the trigger message
             stream_url = trigger_data.stream_url

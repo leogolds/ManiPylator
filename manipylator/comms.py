@@ -9,7 +9,7 @@ import paho.mqtt.client as mqtt
 from pydantic import ValidationError
 from vidgear.gears import NetGear
 
-from schemas import (
+from .schemas import (
     DeviceAboutV1,
     DeviceStatusV1,
     DeviceType,
@@ -20,6 +20,8 @@ from schemas import (
 
 
 class MQTTConnection:
+    """Deprecated: use MQClient instead for new code. Kept for backward compat with notebooks."""
+
     def __init__(self, host="localhost"):
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.client.on_connect = self.on_connect
@@ -113,7 +115,7 @@ class MQClient:
         """Handle incoming MQTT messages."""
         try:
             # Parse payload into appropriate Pydantic model
-            from schemas import parse_payload
+            from .schemas import parse_payload
 
             parsed_message = parse_payload(msg.payload)
             message_schema = parsed_message.message_schema

@@ -5,10 +5,13 @@ import asyncio
 import base64
 from collections import deque
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional, List, Dict, Callable
 
 import cv2
+import numpy as np
 import paho.mqtt.client as mqtt
+import roboticstoolbox as rtb
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
@@ -16,21 +19,14 @@ from pydantic import ValidationError
 from vidgear.gears.asyncio import WebGear_RTC, WebGear
 from vidgear.gears.camgear import CamGear
 
-from schemas import (
-    DeviceAboutV1,
-    DeviceStatusV1,
-    DeviceType,
-    DeviceCapability,
-    StateStr,
-    AnyMessage,
-    StreamInfoV1,
-    StreamStatusV1,
-    FrameSnapshotV1,
-    ConnectionInfo,
-    FastAPIEndpointInfo,
-    Encoding,
+from .schemas import (
+    AnyMessage, ControlCmdV1, ControlType, DeviceAboutV1, DeviceStatusV1,
+    DeviceType, DeviceCapability, RobotStateV1, StateStr, StreamInfoV1,
+    StreamStatusV1, FrameSnapshotV1, ConnectionInfo, FastAPIEndpointInfo, Encoding,
 )
-from comms import MQClient
+from .comms import MQClient
+from .base import MovementCommand, MovementSequence, Visualizer
+from .utils import quaternion_to_rotation_matrix
 
 
 class StreamingCamera(MQClient):
@@ -69,6 +65,18 @@ class StreamingCamera(MQClient):
                 "latest_frame": f"http://{webgear_host}:{webgear_port + 1}/latest",
             },
             device_owner=device_owner,
+        )
+
+        # Set MQTT last-will so the broker publishes offline status even if
+        # the process dies without a clean shutdown.
+        will_status = StreamStatusV1(
+            camera_id=camera_id,
+            state=StateStr.offline,
+        )
+        self.client.will_set(
+            will_status.topic,
+            json.dumps(will_status.json_serializable_dict()),
+            retain=True,
         )
 
         # Camera-specific attributes
@@ -489,9 +497,13 @@ class StreamingCamera(MQClient):
                 if thr.is_alive():
                     self.log(f"Warning: {name} server thread did not exit in time")
 
-        # 6. Publish offline status (MQTT still connected at this point)
+        # 6. Publish offline status and clear retained discovery info
+        #    (MQTT still connected at this point)
         try:
             self._publish_stream_status(StateStr.offline)
+            # Clear retained StreamInfoV1 so new subscribers don't see a stale camera
+            if self.stream_info:
+                self.client.publish(self.stream_info.topic, "", retain=True)
         except Exception:
             pass
 
@@ -562,3 +574,266 @@ class StreamingCamera(MQClient):
         """Stop the camera and cleanup resources (idempotent)."""
         self.running = False
         self._cleanup_camera()
+
+
+# ---------------------------------------------------------------------------
+# Robot devices
+# ---------------------------------------------------------------------------
+
+
+class RobotDevice(MQClient):
+    """A robot that participates in MQTT device discovery and publishes state."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        robot_id: str = "robot-1",
+        broker_host: str = "localhost",
+        broker_port: int = 1883,
+        source: str = "simulated",
+        extra_capabilities: Optional[List[DeviceCapability]] = None,
+        **kwargs,
+    ):
+        capabilities = [
+            DeviceCapability.robot_control,
+            DeviceCapability.robot_state,
+        ]
+        if extra_capabilities:
+            capabilities.extend(extra_capabilities)
+
+        super().__init__(
+            client_id=robot_id,
+            broker_host=broker_host,
+            broker_port=broker_port,
+            device_id=robot_id,
+            device_type=DeviceType.robot,
+            device_vendor=kwargs.pop("device_vendor", "ManiPylator"),
+            device_model=kwargs.pop("device_model", "6DOF-Arm"),
+            device_capabilities=capabilities,
+            subscriptions=[
+                "manipylator/control/commands",
+                f"manipylator/robots/{robot_id}/command",
+            ],
+            **kwargs,
+        )
+
+        self.robot_id = robot_id
+        self.source = source
+        self.urdf_path = urdf_path
+        self.model = rtb.Robot.URDF(urdf_path.absolute())
+
+    def handle_message(self, message: AnyMessage, message_schema: str):
+        """Dispatch incoming control commands."""
+        if isinstance(message, ControlCmdV1):
+            self._execute_command(message)
+        else:
+            super().handle_message(message, message_schema)
+
+    def _execute_command(self, cmd: ControlCmdV1):
+        """Execute a control command. Subclasses implement actual movement."""
+        self.log(f"Received command: {cmd.type}")
+
+    def publish_state(self, q: List[float], gripper: Optional[float] = None):
+        """Publish current joint state to MQTT."""
+        state = RobotStateV1(
+            robot_id=self.robot_id,
+            q=q,
+            gripper=gripper,
+            source=self.source,
+        )
+        self.publish(state.topic, state, retain=True)
+
+    def send_control_sequence(self, seq: MovementSequence):
+        """Publish each command in the sequence as a ControlCmdV1 message."""
+        for command in seq.movements:
+            cmd = ControlCmdV1(
+                type=ControlType.goto,
+                target_pose=list(command.q),
+                source=self.robot_id,
+            )
+            self.publish(cmd.topic, cmd)
+
+
+class SimulatedRobotDevice(RobotDevice):
+    """Simulated robot with a Genesis visualizer scene."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        robot_id: str = "sim-robot-1",
+        broker_host: str = "localhost",
+        headless: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            urdf_path=urdf_path,
+            robot_id=robot_id,
+            broker_host=broker_host,
+            source="headless" if headless else "simulated",
+            **kwargs,
+        )
+        self.visualizer = Visualizer(urdf_path, headless=headless)
+
+    def _execute_command(self, cmd: ControlCmdV1):
+        """Execute movement in the simulator and publish state."""
+        if cmd.type == ControlType.goto and cmd.target_pose:
+            self.step_to_pose(cmd.target_pose)
+        elif cmd.type == ControlType.emergency_stop:
+            self.log("Emergency stop received")
+        else:
+            self.log(f"Unhandled command type: {cmd.type}")
+
+    def step_to_pose(self, pose, link_name="end_effector"):
+        """
+        Step the robot to a new pose and return the transformation matrix.
+
+        Args:
+            pose: List or tuple of joint angles [q1, q2, q3, q4, q5, q6]
+            link_name: Name of the link to get transformation for (default: 'end_effector')
+
+        Returns:
+            tuple: (translation, rotation_matrix) where:
+                - translation: 3D position vector
+                - rotation_matrix: 3x3 rotation matrix
+        """
+        self.visualizer.robot.set_dofs_position(pose)
+        self.visualizer.scene.step()
+
+        link = self.visualizer.robot.get_link(link_name)
+        position = link.get_pos()
+        quat = link.get_quat()
+
+        # Publish state after each step
+        self.publish_state(list(pose))
+
+        return position, quaternion_to_rotation_matrix(quat)
+
+    def homogeneous_transform(self, link_name="end_effector"):
+        """
+        Get the full 4x4 homogeneous transformation matrix for a specific link.
+
+        Args:
+            link_name: Name of the link to get transformation for (default: 'end_effector')
+
+        Returns:
+            numpy.ndarray: 4x4 homogeneous transformation matrix
+        """
+        link = self.visualizer.robot.get_link(link_name)
+        position = link.get_pos()
+        quat = link.get_quat()
+        rotation_matrix = quaternion_to_rotation_matrix(quat)
+
+        transform = np.eye(4)
+        transform[:3, :3] = rotation_matrix
+        transform[:3, 3] = position
+
+        return transform
+
+
+class HeadlessSimulatedRobotDevice(SimulatedRobotDevice):
+    """Simulated robot running headless (no viewer window)."""
+
+    def __init__(self, urdf_path: Path, robot_id: str = "headless-robot-1", **kwargs):
+        super().__init__(urdf_path=urdf_path, robot_id=robot_id, headless=True, **kwargs)
+
+
+class PhysicalRobotDevice(RobotDevice):
+    """Physical robot controlled via Klipper/Moonraker gcode over MQTT."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        robot_id: str = "physical-robot-1",
+        broker_host: str = "localhost",
+        **kwargs,
+    ):
+        super().__init__(
+            urdf_path=urdf_path,
+            robot_id=robot_id,
+            broker_host=broker_host,
+            source="physical",
+            **kwargs,
+        )
+
+    def _execute_command(self, cmd: ControlCmdV1):
+        """Convert command to gcode and publish to Moonraker via MQTT."""
+        if cmd.type == ControlType.goto and cmd.target_pose:
+            q = cmd.target_pose
+            mc = MovementCommand(q1=q[0], q2=q[1], q3=q[2], q4=q[3], q5=q[4], q6=q[5])
+            api_topic = "manipylator/moonraker/api/request"
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "printer.gcode.script",
+                "params": {"script": mc.gcode},
+            }
+            self.publish(api_topic, payload)
+            self.publish_state(list(q))
+        elif cmd.type == ControlType.emergency_stop:
+            self.log("Emergency stop - sending M112")
+            api_topic = "manipylator/moonraker/api/request"
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "printer.gcode.script",
+                "params": {"script": "M112"},
+            }
+            self.publish(api_topic, payload)
+        else:
+            self.log(f"Unhandled command type: {cmd.type}")
+
+
+# ---------------------------------------------------------------------------
+# MQVisualizer — MQClient consumer that visualizes robot state from MQTT
+# ---------------------------------------------------------------------------
+
+
+class MQVisualizer(MQClient):
+    """MQTT consumer that drives a Genesis visualizer from RobotStateV1 messages."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        device_id: str = "mq-visualizer-1",
+        broker_host: str = "localhost",
+        headless: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            client_id=device_id,
+            broker_host=broker_host,
+            device_id=device_id,
+            device_type=DeviceType.other,
+            device_vendor="ManiPylator",
+            device_model="MQVisualizer",
+            device_capabilities=[],
+            subscriptions=[
+                "manipylator/robots/+/state",
+                # Legacy topic for backward compat
+                "manipylator/state",
+            ],
+            **kwargs,
+        )
+        self.visualizer = Visualizer(urdf_path, headless=headless)
+
+    def handle_message(self, message: AnyMessage, message_schema: str):
+        """Update the visualizer when a RobotStateV1 arrives."""
+        if isinstance(message, RobotStateV1):
+            self.visualizer.robot.set_dofs_position(message.q)
+            self.visualizer.scene.step()
+        else:
+            super().handle_message(message, message_schema)
+
+    def on_message(self, client, userdata, msg):
+        """Handle both new schema messages and legacy raw JSON."""
+        try:
+            data = json.loads(msg.payload)
+            # Try new schema first
+            if "message_schema" in data:
+                super().on_message(client, userdata, msg)
+                return
+            # Legacy format: raw {"q1": ..., "q2": ..., ...}
+            if "q1" in data:
+                dofs = [data[f"q{i}"] for i in range(1, 7)]
+                self.visualizer.robot.set_dofs_position(dofs)
+                self.visualizer.scene.step()
+        except (json.JSONDecodeError, KeyError) as e:
+            self.log(f"Error parsing message: {e}")
