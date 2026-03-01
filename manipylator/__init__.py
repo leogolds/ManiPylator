@@ -8,18 +8,8 @@ theoretical robotics and practical implementation using open-source tools.
 __version__ = "0.2.0"
 __author__ = "Leo Goldstien"
 
-from .base import (
-    # Data classes (unchanged)
-    MovementCommand,
-    MovementSequence,
-    Visualizer,
-    # Deprecated aliases (backward compat)
-    Robot,
-    SimulatedRobot,
-    HeadlessSimulatedRobot,
-)
+from .comms import MQTTConnection, MQClient
 from .devices import (
-    # New MQClient-based hierarchy
     RobotDevice,
     SimulatedRobotDevice,
     HeadlessSimulatedRobotDevice,
@@ -27,11 +17,8 @@ from .devices import (
     MQVisualizer,
     StreamingCamera,
 )
-from .comms import MQTTConnection, MQClient
 
-# Make commonly used classes available at package level
 __all__ = [
-    # New classes
     "RobotDevice",
     "SimulatedRobotDevice",
     "HeadlessSimulatedRobotDevice",
@@ -39,13 +26,25 @@ __all__ = [
     "MQVisualizer",
     "StreamingCamera",
     "MQClient",
-    # Data classes
-    "MovementCommand",
-    "MovementSequence",
-    "Visualizer",
-    # Deprecated (backward compat)
-    "Robot",
-    "SimulatedRobot",
-    "HeadlessSimulatedRobot",
     "MQTTConnection",
 ]
+
+try:
+    from .base import (
+        MovementCommand,
+        MovementSequence,
+        Visualizer,
+        Robot,
+        SimulatedRobot,
+        HeadlessSimulatedRobot,
+    )
+    __all__ += [
+        "MovementCommand",
+        "MovementSequence",
+        "Visualizer",
+        "Robot",
+        "SimulatedRobot",
+        "HeadlessSimulatedRobot",
+    ]
+except ImportError:
+    pass

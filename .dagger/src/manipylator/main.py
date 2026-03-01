@@ -240,6 +240,110 @@ class Manipylator:
         )
 
     @function
+    def camera_base_container(
+        self,
+        platform: Annotated[
+            dagger.Platform | None,
+            "Target platform, e.g. linux/arm64 for Raspberry Pi",
+        ] = None,
+    ) -> dagger.Container:
+        """Lightweight Python base container for the StreamingCamera (no CUDA)."""
+        ctr = dag.container(platform=platform) if platform else dag.container()
+        return (
+            ctr.from_("python:3.11-slim-bookworm")
+            .with_env_variable("DEBIAN_FRONTEND", "noninteractive")
+            .with_exec(["apt-get", "update"])
+            .with_exec(
+                [
+                    "apt-get",
+                    "install",
+                    "-y",
+                    "--no-install-recommends",
+                    "libgl1",
+                    "libglib2.0-0",
+                    "ffmpeg",
+                    "v4l-utils",
+                    "libturbojpeg0",
+                    "gcc",
+                    "libc6-dev",
+                ]
+            )
+            .with_exec(["apt", "clean"])
+            .with_exec(["rm", "-rf", "/var/lib/apt/lists/*"])
+            .with_mounted_cache("/cache/pip", dag.cache_volume("pip-cache-camera"))
+            .with_env_variable("PIP_CACHE_DIR", "/cache/pip")
+            .with_workdir("/app")
+        )
+
+    @function
+    async def camera_container(
+        self,
+        source: Annotated[dagger.Directory, "Project source directory"],
+        platform: Annotated[
+            dagger.Platform | None,
+            "Target platform, e.g. linux/arm64 for Raspberry Pi",
+        ] = None,
+    ) -> dagger.Container:
+        """Build the StreamingCamera container for edge deployment (e.g. Raspberry Pi)."""
+        container = self.camera_base_container(platform=platform)
+
+        container = container.with_exec(
+            [
+                "pip",
+                "install",
+                "--no-cache-dir",
+                "opencv-python-headless",
+                "vidgear[asyncio]",
+                "simplejpeg",
+                "jinja2",
+                "fastapi",
+                "uvicorn[standard]",
+                "paho-mqtt",
+                "numpy",
+                "pydantic",
+            ]
+        )
+
+        container = container.with_directory(
+            "/app/manipylator",
+            source.directory("manipylator"),
+            exclude=["__pycache__", "*.pyc"],
+        ).with_entrypoint(["python", "-m", "manipylator.camera_entry"])
+
+        return container
+
+    @function
+    async def publish_camera_container(
+        self,
+        source: Annotated[dagger.Directory, "Project source directory"],
+        tag: Annotated[str, "Image tag suffix"] = "latest",
+        platform: Annotated[
+            dagger.Platform | None,
+            "Target platform, e.g. linux/arm64 for Raspberry Pi",
+        ] = None,
+        registry_username: Annotated[
+            str, "Container registry username (optional)"
+        ] = "",
+        registry_password: Annotated[
+            dagger.Secret | None, "Container registry password (optional)"
+        ] = None,
+    ) -> str:
+        """Build and publish the StreamingCamera container image."""
+        container = await self.camera_container(source, platform)
+
+        arch = "arm" if platform and "arm" in str(platform) else "amd"
+        image_ref = f"leogold/manipylator:camera-service-{arch}-{tag}"
+
+        if registry_username and registry_password:
+            container = container.with_registry_auth(
+                address="docker.io",
+                username=registry_username,
+                secret=registry_password,
+            )
+
+        return await container.publish(image_ref)
+
+    @function
     async def container_echo(self, string_arg: str) -> dagger.Container:
         """Returns a container that echoes whatever string argument is provided"""
         return dag.container().from_("alpine:latest").with_exec(["echo", string_arg])

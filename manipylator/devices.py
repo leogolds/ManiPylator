@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import time
 import threading
@@ -7,12 +9,11 @@ from functools import lru_cache
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List, Dict, Callable
+from typing import Optional, List, Dict, Callable, Union, TYPE_CHECKING
 
 import cv2
 import numpy as np
 import paho.mqtt.client as mqtt
-import roboticstoolbox as rtb
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
@@ -26,8 +27,9 @@ from .schemas import (
     StreamStatusV1, FrameSnapshotV1, ConnectionInfo, FastAPIEndpointInfo, Encoding,
 )
 from .comms import MQClient
-from .base import MovementCommand, MovementSequence, Visualizer
-from .utils import quaternion_to_rotation_matrix
+
+if TYPE_CHECKING:
+    from .base import MovementSequence
 
 
 class StreamingCamera(MQClient):
@@ -36,7 +38,7 @@ class StreamingCamera(MQClient):
     def __init__(
         self,
         camera_id: str = "camera_001",
-        source: int = 0,
+        source: Union[int, str] = 0,
         target_fps: int = 30,
         broker_host: str = "localhost",
         broker_port: int = 1883,
@@ -598,6 +600,8 @@ class RobotDevice(MQClient):
         extra_capabilities: Optional[List[DeviceCapability]] = None,
         **kwargs,
     ):
+        import roboticstoolbox as rtb
+
         capabilities = [
             DeviceCapability.robot_control,
             DeviceCapability.robot_state,
@@ -649,6 +653,8 @@ class RobotDevice(MQClient):
 
     def send_control_sequence(self, seq: MovementSequence):
         """Publish each command in the sequence as a ControlCmdV1 message."""
+        from .base import MovementCommand
+
         for command in seq.movements:
             cmd = ControlCmdV1(
                 type=ControlType.goto,
@@ -669,6 +675,8 @@ class SimulatedRobotDevice(RobotDevice):
         headless: bool = False,
         **kwargs,
     ):
+        from .base import Visualizer
+
         super().__init__(
             urdf_path=urdf_path,
             robot_id=robot_id,
@@ -700,6 +708,8 @@ class SimulatedRobotDevice(RobotDevice):
                 - translation: 3D position vector
                 - rotation_matrix: 3x3 rotation matrix
         """
+        from .utils import quaternion_to_rotation_matrix
+
         self.visualizer.robot.set_dofs_position(pose)
         self.visualizer.scene.step()
 
@@ -707,7 +717,6 @@ class SimulatedRobotDevice(RobotDevice):
         position = link.get_pos()
         quat = link.get_quat()
 
-        # Publish state after each step
         self.publish_state(list(pose))
 
         return position, quaternion_to_rotation_matrix(quat)
@@ -722,6 +731,8 @@ class SimulatedRobotDevice(RobotDevice):
         Returns:
             numpy.ndarray: 4x4 homogeneous transformation matrix
         """
+        from .utils import quaternion_to_rotation_matrix
+
         link = self.visualizer.robot.get_link(link_name)
         position = link.get_pos()
         quat = link.get_quat()
@@ -762,6 +773,8 @@ class PhysicalRobotDevice(RobotDevice):
     def _execute_command(self, cmd: ControlCmdV1):
         """Convert command to gcode and publish to Moonraker via MQTT."""
         if cmd.type == ControlType.goto and cmd.target_pose:
+            from .base import MovementCommand
+
             q = cmd.target_pose
             mc = MovementCommand(q1=q[0], q2=q[1], q3=q[2], q4=q[3], q5=q[4], q6=q[5])
             api_topic = "manipylator/moonraker/api/request"
@@ -801,6 +814,8 @@ class MQVisualizer(MQClient):
         headless: bool = False,
         **kwargs,
     ):
+        from .base import Visualizer
+
         super().__init__(
             client_id=device_id,
             broker_host=broker_host,
@@ -811,7 +826,6 @@ class MQVisualizer(MQClient):
             device_capabilities=[],
             subscriptions=[
                 "manipylator/robots/+/state",
-                # Legacy topic for backward compat
                 "manipylator/state",
             ],
             **kwargs,

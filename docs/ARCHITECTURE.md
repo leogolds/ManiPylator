@@ -419,8 +419,32 @@ The `.dagger/` directory contains a Python-based [Dagger](https://dagger.io/) mo
 that automates:
 
 - Building the `lab` container image (PyTorch CUDA, Genesis, Jupyter, all Python deps)
+- Building the `camera-service` container image (lightweight Python image for edge deployment)
 - Running Jupyter Lab and Panel services
 - Python package builds
+
+### Camera Service Container
+
+The `camera-service` image packages `StreamingCamera` into a lightweight
+`python:3.11-slim-bookworm` container suitable for edge devices like Raspberry Pi.
+Heavy dependencies (roboticstoolbox, Genesis, scipy) are excluded -- only
+OpenCV, VidGear, FastAPI, and paho-mqtt are installed.
+
+Dagger functions:
+
+| Function | Description |
+|---|---|
+| `camera-base-container` | Lightweight Python base with OpenCV system deps |
+| `camera-container` | Full camera image with Python deps + `manipylator` package |
+| `publish-camera-container` | Build and push to `leogold/manipylator:camera-service-{arch}-{tag}` |
+
+All three accept `--platform=linux/arm64` for Raspberry Pi cross-builds. Images are
+tagged with the target architecture: `camera-service-amd-latest` or
+`camera-service-arm-latest`.
+
+The entrypoint (`manipylator/camera_entry.py`) reads all configuration from
+environment variables (`CAMERA_ID`, `CAMERA_SOURCE`, `MQTT_BROKER_HOST`, etc.).
+See `containers/camera/compose.yaml` for a deployment example with two USB cameras.
 
 The Dagger engine configuration and cache management scripts live in
 `containers/dagger-engine/`.
@@ -435,6 +459,7 @@ ManiPylator/
     schemas.py              #   Pydantic message types and MQTT topic registry
     comms.py                #   MQClient base class (MQTT device lifecycle)
     devices.py              #   StreamingCamera(MQClient) -- camera + streaming + REST
+    camera_entry.py         #   Container entrypoint for StreamingCamera service
     pipeline.py             #   HandDetector, PeriodicHandDetector, SafetyListener
     tasks.py                #   Huey tasks (detect_hands_latest, MediaPipe wrapper)
     base.py                 #   Robot, SimulatedRobot, Visualizer, MQVisualizer
@@ -445,6 +470,7 @@ ManiPylator/
   robots/                   # URDF Jinja2 templates + mesh assets (empiric, vanilla)
   containers/               # Docker Compose for controller stack
     controller/             #   Klipper, Moonraker, MQTT, Redis, Simulavr, Mainsail, Traefik
+    camera/                 #   Camera service compose (2x USB cameras, Pi deployment)
     lab/                    #   Lab Dockerfile
     dagger-engine/          #   Dagger engine config, cache management
   compose.yaml              # Root compose: lab container (Jupyter, GPU)
