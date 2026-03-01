@@ -7,14 +7,20 @@ Starts three components in order and tears them all down on Ctrl+C:
   2. Pipeline         -- camera + analyzer + safety listener
   3. Stream viewer    -- OpenCV GUI with red border on hand detection
 
+By default the pipeline expects an external camera-service container.
+Pass --local-camera to start a local StreamingCamera in-process instead.
+
 Prerequisites (assumed already running):
   - MQTT broker on localhost:1883
   - Redis on localhost:6379
+  - Camera-service container (unless --local-camera)
 
 Usage:
     python run_pipeline.py
+    python run_pipeline.py --local-camera
 """
 
+import argparse
 import os
 import signal
 import subprocess
@@ -37,6 +43,14 @@ def _ts():
 
 
 def main():
+    parser = argparse.ArgumentParser(description="ManiPylator pipeline launcher")
+    parser.add_argument(
+        "--local-camera",
+        action="store_true",
+        help="Start a local StreamingCamera instead of relying on the camera-service container",
+    )
+    args = parser.parse_args()
+
     procs = []  # list of (name, Popen)
 
     def _stop_children():
@@ -81,11 +95,14 @@ def main():
     print(f"[{_ts()}] [launcher] Huey worker running (pid {huey.pid})")
 
     # ------------------------------------------------------------------
-    # 2. Pipeline (camera + analyzer + safety listener)
+    # 2. Pipeline (analyzer + safety listener, optionally camera)
     # ------------------------------------------------------------------
-    print(f"[{_ts()}] [launcher] Starting pipeline...")
+    pipeline_cmd = [PYTHON, "-m", "manipylator.pipeline"]
+    if args.local_camera:
+        pipeline_cmd.append("--local-camera")
+    print(f"[{_ts()}] [launcher] Starting pipeline{'  (local camera)' if args.local_camera else ''}...")
     pipeline = subprocess.Popen(
-        [PYTHON, "-m", "manipylator.pipeline"],
+        pipeline_cmd,
         cwd=REPO_ROOT,
     )
     procs.append(("pipeline", pipeline))
