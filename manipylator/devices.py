@@ -3,6 +3,7 @@ import time
 import threading
 import asyncio
 import base64
+from functools import lru_cache
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -110,6 +111,30 @@ class StreamingCamera(MQClient):
         self.fastapi_app = FastAPI(title=f"Camera {camera_id} API", version="1.0.0")
         self._setup_fastapi_routes()
 
+    @lru_cache(maxsize=1)
+    def _encode_jpeg(self, frame_id: int) -> Optional[bytes]:
+        """JPEG-encode the current frame, cached by frame_id.
+
+        lru_cache(maxsize=1) keeps exactly the latest encoding.  When
+        frame_id advances the stale entry is evicted automatically.
+        """
+        if not self.latest_frame:
+            return None
+        success, encoded = cv2.imencode(".jpg", self.latest_frame[-1])
+        if not success:
+            return None
+        return encoded.tobytes()
+
+    def _get_jpeg(self):
+        """Return (frame_id, jpeg_bytes, frame) for the latest frame, or None."""
+        if not self.latest_frame:
+            return None
+        frame_id = self.frame_counter
+        jpeg_bytes = self._encode_jpeg(frame_id)
+        if jpeg_bytes is None:
+            return None
+        return frame_id, jpeg_bytes, self.latest_frame[-1]
+
     def _setup_fastapi_routes(self):
         """Set up FastAPI routes for the camera."""
 
@@ -160,30 +185,20 @@ class StreamingCamera(MQClient):
         @self.fastapi_app.get("/latest")
         async def get_latest_frame():
             """Get the latest frame as JPEG with metadata in response body."""
-            if not self.latest_frame:
+            result = self._get_jpeg()
+            if result is None:
                 raise HTTPException(status_code=404, detail="No frame available")
 
             try:
-                # Get the latest frame
-                frame = self.latest_frame[-1]
-
-                # Encode frame as JPEG
-                success, encoded_image = cv2.imencode(".jpg", frame)
-                if not success:
-                    raise HTTPException(
-                        status_code=500, detail="Failed to encode frame"
-                    )
-
-                # Get frame dimensions
+                frame_id, jpeg_bytes, frame = result
                 height, width = frame.shape[:2]
 
-                # Create metadata
                 frame_capture_time_utc = datetime.now(timezone.utc)
                 frame_capture_time_monotonic_ns = int(time.monotonic_ns())
 
                 metadata = {
                     "camera_id": self.camera_id,
-                    "frame_id": self.frame_counter,
+                    "frame_id": frame_id,
                     "width": width,
                     "height": height,
                     "encoding": "jpeg",
@@ -193,14 +208,13 @@ class StreamingCamera(MQClient):
                     "timestamp": time.time(),
                 }
 
-                # Return JPEG with metadata in response body
                 return Response(
-                    content=encoded_image.tobytes(),
+                    content=jpeg_bytes,
                     media_type="image/jpeg",
                     headers={
                         "X-Frame-Metadata": json.dumps(metadata),
                         "X-Camera-ID": self.camera_id,
-                        "X-Frame-ID": str(self.frame_counter),
+                        "X-Frame-ID": str(frame_id),
                         "X-Frame-Width": str(width),
                         "X-Frame-Height": str(height),
                     },
@@ -267,9 +281,8 @@ class StreamingCamera(MQClient):
                     self.latest_frame.append(frame)
                     self.frame_counter += 1
 
-                    # Publish frame snapshot periodically
-                    if self.frame_counter % 10 == 0:  # Every 10th frame
-                        self._publish_frame_snapshot(frame)
+                    # if self.frame_counter % 10 == 0:
+                    #     self._publish_frame_snapshot()
 
             except Exception as e:
                 # CamGear was likely stopped; exit the loop cleanly
@@ -289,20 +302,17 @@ class StreamingCamera(MQClient):
     async def _read_frames_async(self):
         """Async generator for WebGear streaming."""
         while self.running:
-            if not self.latest_frame:
+            result = self._get_jpeg()
+            if result is None:
                 yield None
                 await asyncio.sleep(0.02)
                 continue
 
             try:
-                # Get latest frame
-                frame = self.latest_frame[-1]
-                encoded_image = cv2.imencode(".jpg", frame)[1].tobytes()
-
-                # Yield frame in MJPEG format
+                _, jpeg_bytes, _ = result
                 yield (
                     b"--frame\r\nContent-Type:image/jpeg\r\n\r\n"
-                    + encoded_image
+                    + jpeg_bytes
                     + b"\r\n"
                 )
                 await asyncio.sleep(0.02)
@@ -311,28 +321,23 @@ class StreamingCamera(MQClient):
                 self.log(f"Error in frame streaming: {e}")
                 await asyncio.sleep(0.1)
 
-    def _publish_frame_snapshot(self, frame):
+    def _publish_frame_snapshot(self):
         """Publish a frame snapshot to MQTT."""
         try:
-            # Capture timing information
             frame_capture_time_utc = datetime.now(timezone.utc)
             frame_capture_time_monotonic_ns = int(time.monotonic_ns())
 
-            # Encode frame as JPEG
-            success, encoded_image = cv2.imencode(".jpg", frame)
-            if not success:
+            result = self._get_jpeg()
+            if result is None:
                 return
 
-            # Convert to base64
-            jpeg_base64 = base64.b64encode(encoded_image).decode("utf-8")
-
-            # Get frame dimensions
+            frame_id, jpeg_bytes, frame = result
+            jpeg_base64 = base64.b64encode(jpeg_bytes).decode("utf-8")
             height, width = frame.shape[:2]
 
-            # Create frame snapshot message
             frame_snapshot = FrameSnapshotV1(
                 camera_id=self.camera_id,
-                frame_id=self.frame_counter,
+                frame_id=frame_id,
                 width=width,
                 height=height,
                 encoding=Encoding.jpeg,
@@ -341,7 +346,6 @@ class StreamingCamera(MQClient):
                 frame_capture_time_monotonic_ns=frame_capture_time_monotonic_ns,
             )
 
-            # Publish to MQTT
             self.publish(frame_snapshot.topic, frame_snapshot, retain=True)
 
         except Exception as e:
