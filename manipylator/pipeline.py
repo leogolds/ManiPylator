@@ -8,7 +8,7 @@ Components:
 3. SafetyListener      -- subscribes to hand-guard events, debounces and logs state changes
 
 Entry point:
-    python -m manipylator.pipeline       (or: python manipylator/pipeline.py)
+    python -m manipylator.pipeline
 """
 
 import json
@@ -21,10 +21,11 @@ import threading
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
 
-from comms import MQClient
-from devices import StreamingCamera
-from schemas import (
+from .comms import MQClient
+from .devices import StreamingCamera
+from .schemas import (
     AnalysisTriggerV1,
+    DeviceAboutV1,
     HandGuardEventV1,
     DeviceType,
     DeviceCapability,
@@ -93,7 +94,7 @@ class HandDetector(MQClient):
             analysis_start_time_monotonic_ns = int(time.monotonic_ns())
 
             # Use the detect_hands_latest task from tasks.py
-            from tasks import detect_hands_latest
+            from .tasks import detect_hands_latest
 
             # Get the stream URL from the trigger message
             stream_url = trigger_data.stream_url
@@ -276,6 +277,7 @@ class PeriodicHandDetector(HandDetector):
         camera_id: str = "camera_01",
         interval_seconds: float = 1.0,
         auto_discover: bool = False,
+        filter_belongs_to: Optional[str] = None,
         **kwargs,
     ):
         # Initialize the parent HandDetector
@@ -285,10 +287,14 @@ class PeriodicHandDetector(HandDetector):
         self.trigger_thread = None
         self.running = False
         self.auto_discover = auto_discover
+        self.filter_belongs_to = filter_belongs_to
         self.silent = False
 
         # Discovery state: camera_id -> {"stream_url": str, "discovered_at": float}
         self.discovered_cameras: Dict[str, dict] = {}
+
+        # Ownership state: camera_id -> belongs_to value (from DeviceAboutV1)
+        self._device_belongs_to: Dict[str, Optional[str]] = {}
 
         if auto_discover:
             # Subscribe to stream discovery and status topics
@@ -300,10 +306,44 @@ class PeriodicHandDetector(HandDetector):
             self.message_handlers["manipylator/stream/status/v1"] = (
                 self._handle_stream_status
             )
+
+            if filter_belongs_to:
+                self.subscriptions.append("manipylator/devices/+/about")
+                self.message_handlers["manipylator/device/about/v1"] = (
+                    self._handle_device_about
+                )
         else:
             # Static configuration -- single camera
             self.static_stream_url = stream_url
             self.static_camera_id = camera_id
+
+    def _owns_camera(self, camera_id: str) -> bool:
+        """Check whether *camera_id* passes the ``filter_belongs_to`` gate.
+
+        When no filter is set every camera is accepted.  When a filter is
+        active, the camera must have announced a matching ``belongs_to``
+        via ``DeviceAboutV1`` -- if no about message has arrived yet the
+        camera is *deferred* (not accepted, not rejected).
+        """
+        if not self.filter_belongs_to:
+            return True
+        return self._device_belongs_to.get(camera_id) == self.filter_belongs_to
+
+    def _handle_device_about(self, device_about: DeviceAboutV1):
+        """Track ``belongs_to`` from DeviceAboutV1 for ownership filtering."""
+        device_id = device_about.device_id
+        self._device_belongs_to[device_id] = device_about.belongs_to
+
+        if device_about.type != DeviceType.camera:
+            return
+
+        if self.filter_belongs_to and device_about.belongs_to != self.filter_belongs_to:
+            if device_id in self.discovered_cameras:
+                del self.discovered_cameras[device_id]
+                self.log(
+                    f"Camera '{device_id}' removed: belongs_to='{device_about.belongs_to}' "
+                    f"does not match filter '{self.filter_belongs_to}'"
+                )
 
     def _handle_stream_info(self, stream_info: StreamInfoV1):
         """Handle a stream discovery message. Registers or updates a camera."""
@@ -317,6 +357,12 @@ class PeriodicHandDetector(HandDetector):
         if not stream_url:
             self.log(
                 f"Ignoring stream info for {camera_id}: no usable stream URL found"
+            )
+            return
+
+        if not self._owns_camera(camera_id):
+            self.log(
+                f"Ignoring camera '{camera_id}': does not belong to '{self.filter_belongs_to}'"
             )
             return
 
@@ -632,31 +678,42 @@ class SafetyListener(MQClient):
             self._cleanup_mq()
 
 
-def run_pipeline():
+def run_pipeline(local_camera: bool = False):
     """Run the complete vision-safety pipeline.
 
-    The camera publishes its stream info to MQTT on startup. The analyzer
-    discovers it automatically and begins periodic hand-detection analysis.
-    The safety listener prints results with debouncing.
+    The analyzer discovers cameras automatically via MQTT and begins
+    periodic hand-detection analysis. The safety listener prints results
+    with debouncing.
+
+    By default the pipeline expects an external camera-service container
+    to be running and publishing StreamInfoV1 to MQTT. Pass
+    ``local_camera=True`` to start a local StreamingCamera in-process.
+
+    Args:
+        local_camera: When True, start a local StreamingCamera instead of
+            relying on an external camera-service container.
 
     Prerequisites:
     - MQTT broker running on localhost:1883
     - Redis running on localhost:6379 (for Huey task queue)
     - Huey worker:  huey_consumer.py tasks.huey -w 2
+    - Camera-service container running (unless local_camera=True)
     """
     timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
-    print(f"[{timestamp}] Starting ManiPylator pipeline (auto-discovery)...")
+    mode_label = "local camera" if local_camera else "external camera"
+    print(f"[{timestamp}] Starting ManiPylator pipeline ({mode_label}, auto-discovery)...")
     print("=" * 60)
 
-    # Create components -- the analyzer uses auto-discovery so it does not
-    # need to know the camera_id or stream URL ahead of time.
-    camera = StreamingCamera(
-        camera_id="demo_cam_01",
-        source=0,
-        target_fps=30,
-        webgear_port=8000,
-        webgear_host="localhost",
-    )
+    camera = None
+    if local_camera:
+        camera = StreamingCamera(
+            camera_id="demo_cam_01",
+            source=0,
+            target_fps=30,
+            webgear_port=8000,
+            webgear_host="localhost",
+        )
+
     analyzer = PeriodicHandDetector(
         "hand_detector_01",
         auto_discover=True,
@@ -664,22 +721,31 @@ def run_pipeline():
     )
     listener = SafetyListener(min_clear_signals=1)
 
-    try:
-        # Start all components in daemon threads
-        camera_thread = threading.Thread(target=camera.run, daemon=True)
-        analyzer_thread = threading.Thread(target=analyzer.run, daemon=True)
-        listener_thread = threading.Thread(target=listener.run, daemon=True)
+    threads = []
 
-        camera_thread.start()
+    try:
+        if camera:
+            camera_thread = threading.Thread(target=camera.run, daemon=True)
+            camera_thread.start()
+            threads.append(("camera", camera_thread))
+
+        analyzer_thread = threading.Thread(target=analyzer.run, daemon=True)
         analyzer_thread.start()
+        threads.append(("analyzer", analyzer_thread))
+
+        listener_thread = threading.Thread(target=listener.run, daemon=True)
         listener_thread.start()
+        threads.append(("listener", listener_thread))
 
         time.sleep(1)
 
         timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
         print(f"\n[{timestamp}] Pipeline is running! Press Ctrl+C to stop.")
         print("Flow:")
-        print("  1. Camera publishes stream info to MQTT")
+        if local_camera:
+            print("  1. Camera publishes stream info to MQTT")
+        else:
+            print("  1. External camera service publishes stream info to MQTT")
         print("  2. Analyzer auto-discovers the camera via MQTT")
         print("  3. Analyzer triggers periodic hand-detection (via Huey)")
         print("  4. Safety listener prints results with debouncing")
@@ -687,10 +753,13 @@ def run_pipeline():
         print("Prerequisites:")
         print("  - Redis running on localhost:6379")
         print("  - Huey worker: huey_consumer.py tasks.huey -w 2")
+        if not local_camera:
+            print("  - Camera service container running (docker compose up)")
         print()
-        print("Endpoints:")
-        print("  - MJPEG stream:  http://localhost:8000/video")
-        print("  - FastAPI:       http://localhost:8001/latest")
+        if local_camera:
+            print("Endpoints:")
+            print("  - MJPEG stream:  http://localhost:8000/video")
+            print("  - FastAPI:       http://localhost:8001/latest")
         print("=" * 60)
 
         while True:
@@ -700,24 +769,17 @@ def run_pipeline():
         timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
         print(f"\n[{timestamp}] Stopping pipeline...")
     finally:
-        # Signal all components to stop
-        camera.running = False
         analyzer.running = False
         listener.running = False
 
-        # Explicitly trigger camera cleanup (idempotent) so that
-        # CamGear releases /dev/videoN and uvicorn releases its ports
-        # even if the thread join times out.
-        try:
-            camera.stop()
-        except Exception as e:
-            print(f"Error during camera cleanup: {e}")
+        if camera:
+            camera.running = False
+            try:
+                camera.stop()
+            except Exception as e:
+                print(f"Error during camera cleanup: {e}")
 
-        for name, thread in [
-            ("camera", camera_thread),
-            ("analyzer", analyzer_thread),
-            ("listener", listener_thread),
-        ]:
+        for name, thread in threads:
             try:
                 thread.join(timeout=5.0)
             except Exception as e:
@@ -728,4 +790,13 @@ def run_pipeline():
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="ManiPylator vision-safety pipeline")
+    parser.add_argument(
+        "--local-camera",
+        action="store_true",
+        help="Start a local StreamingCamera instead of relying on the camera-service container",
+    )
+    args = parser.parse_args()
+    run_pipeline(local_camera=args.local_camera)

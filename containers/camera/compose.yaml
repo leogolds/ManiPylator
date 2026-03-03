@@ -1,0 +1,56 @@
+# Camera service compose for USB cameras.
+#
+# Build the image with Dagger first (pick your arch):
+#   dagger call camera-container --source=. --platform=linux/arm64 \
+#     export --path=camera-service-arm.tar
+#   dagger call camera-container --source=. \
+#     export --path=camera-service-amd.tar
+#   docker load -i camera-service-arm.tar
+#
+# Or publish to a registry and pull on the Pi:
+#   dagger call publish-camera-container --source=. --platform=linux/arm64 \
+#     --tag=latest \
+#     --registry-username=USER \
+#     --registry-password=env:DOCKER_TOKEN
+#
+# Usage:
+#   docker compose up -d
+#   ARCH=arm docker compose up -d          # on Raspberry Pi
+#
+# Uses host networking so the camera can reach MQTT on localhost and
+# expose WebGear/FastAPI ports directly. Each camera needs unique ports.
+
+services:
+  camera-left:
+    image: leogold/manipylator:camera-service-${ARCH:-amd}-latest
+    container_name: camera-left
+    network_mode: host
+    devices:
+      - /dev/video0:/dev/camera
+    environment:
+      CAMERA_ID: camera-left
+      CAMERA_SOURCE: /dev/camera
+      TARGET_FPS: 30
+      MQTT_BROKER_HOST: localhost
+      MQTT_BROKER_PORT: 1883
+      WEBGEAR_PORT: 8000
+      WEBGEAR_HOST: 0.0.0.0
+      BELONGS_TO: ${BELONGS_TO:-}
+    restart: unless-stopped
+
+  camera-right:
+    image: leogold/manipylator:camera-service-${ARCH:-amd}-latest
+    container_name: camera-right
+    network_mode: host
+    devices:
+      - /dev/video2:/dev/camera
+    environment:
+      CAMERA_ID: camera-right
+      CAMERA_SOURCE: /dev/camera
+      TARGET_FPS: 30
+      MQTT_BROKER_HOST: localhost
+      MQTT_BROKER_PORT: 1883
+      WEBGEAR_PORT: 8010
+      WEBGEAR_HOST: 0.0.0.0
+      BELONGS_TO: ${BELONGS_TO:-}
+    restart: unless-stopped

@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import json
 import time
 import threading
 import asyncio
 import base64
+from functools import lru_cache
 from collections import deque
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Callable
+from pathlib import Path
+from typing import Optional, List, Dict, Callable, Union, TYPE_CHECKING
 
 import cv2
+import numpy as np
 import paho.mqtt.client as mqtt
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -16,21 +21,15 @@ from pydantic import ValidationError
 from vidgear.gears.asyncio import WebGear_RTC, WebGear
 from vidgear.gears.camgear import CamGear
 
-from schemas import (
-    DeviceAboutV1,
-    DeviceStatusV1,
-    DeviceType,
-    DeviceCapability,
-    StateStr,
-    AnyMessage,
-    StreamInfoV1,
-    StreamStatusV1,
-    FrameSnapshotV1,
-    ConnectionInfo,
-    FastAPIEndpointInfo,
-    Encoding,
+from .schemas import (
+    AnyMessage, ControlCmdV1, ControlType, DeviceAboutV1, DeviceStatusV1,
+    DeviceType, DeviceCapability, RobotStateV1, StateStr, StreamInfoV1,
+    StreamStatusV1, FrameSnapshotV1, ConnectionInfo, FastAPIEndpointInfo, Encoding,
 )
-from comms import MQClient
+from .comms import MQClient
+
+if TYPE_CHECKING:
+    from .base import MovementSequence
 
 
 class StreamingCamera(MQClient):
@@ -39,7 +38,7 @@ class StreamingCamera(MQClient):
     def __init__(
         self,
         camera_id: str = "camera_001",
-        source: int = 0,
+        source: Union[int, str] = 0,
         target_fps: int = 30,
         broker_host: str = "localhost",
         broker_port: int = 1883,
@@ -48,6 +47,7 @@ class StreamingCamera(MQClient):
         device_vendor: str = "ManiPylator",
         device_model: str = "CameraGear-1000",
         device_owner: str = "camera_user",
+        belongs_to: Optional[str] = None,
     ):
         # Initialize MQClient with camera-specific settings
         super().__init__(
@@ -69,6 +69,19 @@ class StreamingCamera(MQClient):
                 "latest_frame": f"http://{webgear_host}:{webgear_port + 1}/latest",
             },
             device_owner=device_owner,
+            belongs_to=belongs_to,
+        )
+
+        # Set MQTT last-will so the broker publishes offline status even if
+        # the process dies without a clean shutdown.
+        will_status = StreamStatusV1(
+            camera_id=camera_id,
+            state=StateStr.offline,
+        )
+        self.client.will_set(
+            will_status.topic,
+            json.dumps(will_status.json_serializable_dict()),
+            retain=True,
         )
 
         # Camera-specific attributes
@@ -101,6 +114,30 @@ class StreamingCamera(MQClient):
         # FastAPI app for REST endpoints
         self.fastapi_app = FastAPI(title=f"Camera {camera_id} API", version="1.0.0")
         self._setup_fastapi_routes()
+
+    @lru_cache(maxsize=1)
+    def _encode_jpeg(self, frame_id: int) -> Optional[bytes]:
+        """JPEG-encode the current frame, cached by frame_id.
+
+        lru_cache(maxsize=1) keeps exactly the latest encoding.  When
+        frame_id advances the stale entry is evicted automatically.
+        """
+        if not self.latest_frame:
+            return None
+        success, encoded = cv2.imencode(".jpg", self.latest_frame[-1])
+        if not success:
+            return None
+        return encoded.tobytes()
+
+    def _get_jpeg(self):
+        """Return (frame_id, jpeg_bytes, frame) for the latest frame, or None."""
+        if not self.latest_frame:
+            return None
+        frame_id = self.frame_counter
+        jpeg_bytes = self._encode_jpeg(frame_id)
+        if jpeg_bytes is None:
+            return None
+        return frame_id, jpeg_bytes, self.latest_frame[-1]
 
     def _setup_fastapi_routes(self):
         """Set up FastAPI routes for the camera."""
@@ -152,30 +189,20 @@ class StreamingCamera(MQClient):
         @self.fastapi_app.get("/latest")
         async def get_latest_frame():
             """Get the latest frame as JPEG with metadata in response body."""
-            if not self.latest_frame:
+            result = self._get_jpeg()
+            if result is None:
                 raise HTTPException(status_code=404, detail="No frame available")
 
             try:
-                # Get the latest frame
-                frame = self.latest_frame[-1]
-
-                # Encode frame as JPEG
-                success, encoded_image = cv2.imencode(".jpg", frame)
-                if not success:
-                    raise HTTPException(
-                        status_code=500, detail="Failed to encode frame"
-                    )
-
-                # Get frame dimensions
+                frame_id, jpeg_bytes, frame = result
                 height, width = frame.shape[:2]
 
-                # Create metadata
                 frame_capture_time_utc = datetime.now(timezone.utc)
                 frame_capture_time_monotonic_ns = int(time.monotonic_ns())
 
                 metadata = {
                     "camera_id": self.camera_id,
-                    "frame_id": self.frame_counter,
+                    "frame_id": frame_id,
                     "width": width,
                     "height": height,
                     "encoding": "jpeg",
@@ -185,14 +212,13 @@ class StreamingCamera(MQClient):
                     "timestamp": time.time(),
                 }
 
-                # Return JPEG with metadata in response body
                 return Response(
-                    content=encoded_image.tobytes(),
+                    content=jpeg_bytes,
                     media_type="image/jpeg",
                     headers={
                         "X-Frame-Metadata": json.dumps(metadata),
                         "X-Camera-ID": self.camera_id,
-                        "X-Frame-ID": str(self.frame_counter),
+                        "X-Frame-ID": str(frame_id),
                         "X-Frame-Width": str(width),
                         "X-Frame-Height": str(height),
                     },
@@ -259,9 +285,8 @@ class StreamingCamera(MQClient):
                     self.latest_frame.append(frame)
                     self.frame_counter += 1
 
-                    # Publish frame snapshot periodically
-                    if self.frame_counter % 10 == 0:  # Every 10th frame
-                        self._publish_frame_snapshot(frame)
+                    # if self.frame_counter % 10 == 0:
+                    #     self._publish_frame_snapshot()
 
             except Exception as e:
                 # CamGear was likely stopped; exit the loop cleanly
@@ -281,20 +306,17 @@ class StreamingCamera(MQClient):
     async def _read_frames_async(self):
         """Async generator for WebGear streaming."""
         while self.running:
-            if not self.latest_frame:
+            result = self._get_jpeg()
+            if result is None:
                 yield None
                 await asyncio.sleep(0.02)
                 continue
 
             try:
-                # Get latest frame
-                frame = self.latest_frame[-1]
-                encoded_image = cv2.imencode(".jpg", frame)[1].tobytes()
-
-                # Yield frame in MJPEG format
+                _, jpeg_bytes, _ = result
                 yield (
                     b"--frame\r\nContent-Type:image/jpeg\r\n\r\n"
-                    + encoded_image
+                    + jpeg_bytes
                     + b"\r\n"
                 )
                 await asyncio.sleep(0.02)
@@ -303,28 +325,23 @@ class StreamingCamera(MQClient):
                 self.log(f"Error in frame streaming: {e}")
                 await asyncio.sleep(0.1)
 
-    def _publish_frame_snapshot(self, frame):
+    def _publish_frame_snapshot(self):
         """Publish a frame snapshot to MQTT."""
         try:
-            # Capture timing information
             frame_capture_time_utc = datetime.now(timezone.utc)
             frame_capture_time_monotonic_ns = int(time.monotonic_ns())
 
-            # Encode frame as JPEG
-            success, encoded_image = cv2.imencode(".jpg", frame)
-            if not success:
+            result = self._get_jpeg()
+            if result is None:
                 return
 
-            # Convert to base64
-            jpeg_base64 = base64.b64encode(encoded_image).decode("utf-8")
-
-            # Get frame dimensions
+            frame_id, jpeg_bytes, frame = result
+            jpeg_base64 = base64.b64encode(jpeg_bytes).decode("utf-8")
             height, width = frame.shape[:2]
 
-            # Create frame snapshot message
             frame_snapshot = FrameSnapshotV1(
                 camera_id=self.camera_id,
-                frame_id=self.frame_counter,
+                frame_id=frame_id,
                 width=width,
                 height=height,
                 encoding=Encoding.jpeg,
@@ -333,7 +350,6 @@ class StreamingCamera(MQClient):
                 frame_capture_time_monotonic_ns=frame_capture_time_monotonic_ns,
             )
 
-            # Publish to MQTT
             self.publish(frame_snapshot.topic, frame_snapshot, retain=True)
 
         except Exception as e:
@@ -489,9 +505,13 @@ class StreamingCamera(MQClient):
                 if thr.is_alive():
                     self.log(f"Warning: {name} server thread did not exit in time")
 
-        # 6. Publish offline status (MQTT still connected at this point)
+        # 6. Publish offline status and clear retained discovery info
+        #    (MQTT still connected at this point)
         try:
             self._publish_stream_status(StateStr.offline)
+            # Clear retained StreamInfoV1 so new subscribers don't see a stale camera
+            if self.stream_info:
+                self.client.publish(self.stream_info.topic, "", retain=True)
         except Exception:
             pass
 
@@ -562,3 +582,280 @@ class StreamingCamera(MQClient):
         """Stop the camera and cleanup resources (idempotent)."""
         self.running = False
         self._cleanup_camera()
+
+
+# ---------------------------------------------------------------------------
+# Robot devices
+# ---------------------------------------------------------------------------
+
+
+class RobotDevice(MQClient):
+    """A robot that participates in MQTT device discovery and publishes state."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        robot_id: str = "robot-1",
+        broker_host: str = "localhost",
+        broker_port: int = 1883,
+        source: str = "simulated",
+        extra_capabilities: Optional[List[DeviceCapability]] = None,
+        child_devices: Optional[List[str]] = None,
+        **kwargs,
+    ):
+        import roboticstoolbox as rtb
+
+        capabilities = [
+            DeviceCapability.robot_control,
+            DeviceCapability.robot_state,
+        ]
+        if extra_capabilities:
+            capabilities.extend(extra_capabilities)
+
+        super().__init__(
+            client_id=robot_id,
+            broker_host=broker_host,
+            broker_port=broker_port,
+            device_id=robot_id,
+            device_type=DeviceType.robot,
+            device_vendor=kwargs.pop("device_vendor", "ManiPylator"),
+            device_model=kwargs.pop("device_model", "6DOF-Arm"),
+            device_capabilities=capabilities,
+            child_devices=child_devices,
+            subscriptions=[
+                "manipylator/control/commands",
+                f"manipylator/robots/{robot_id}/command",
+            ],
+            **kwargs,
+        )
+
+        self.robot_id = robot_id
+        self.source = source
+        self.urdf_path = urdf_path
+        self.model = rtb.Robot.URDF(urdf_path.absolute())
+
+    def handle_message(self, message: AnyMessage, message_schema: str):
+        """Dispatch incoming control commands."""
+        if isinstance(message, ControlCmdV1):
+            self._execute_command(message)
+        else:
+            super().handle_message(message, message_schema)
+
+    def _execute_command(self, cmd: ControlCmdV1):
+        """Execute a control command. Subclasses implement actual movement."""
+        self.log(f"Received command: {cmd.type}")
+
+    def publish_state(self, q: List[float], gripper: Optional[float] = None):
+        """Publish current joint state to MQTT."""
+        state = RobotStateV1(
+            robot_id=self.robot_id,
+            q=q,
+            gripper=gripper,
+            source=self.source,
+        )
+        self.publish(state.topic, state, retain=True)
+
+    def send_control_sequence(self, seq: MovementSequence):
+        """Publish each command in the sequence as a ControlCmdV1 message."""
+        from .base import MovementCommand
+
+        for command in seq.movements:
+            cmd = ControlCmdV1(
+                type=ControlType.goto,
+                target_pose=list(command.q),
+                source=self.robot_id,
+            )
+            self.publish(cmd.topic, cmd)
+
+
+class SimulatedRobotDevice(RobotDevice):
+    """Simulated robot with a Genesis visualizer scene."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        robot_id: str = "sim-robot-1",
+        broker_host: str = "localhost",
+        headless: bool = False,
+        **kwargs,
+    ):
+        from .base import Visualizer
+
+        super().__init__(
+            urdf_path=urdf_path,
+            robot_id=robot_id,
+            broker_host=broker_host,
+            source="headless" if headless else "simulated",
+            **kwargs,
+        )
+        self.visualizer = Visualizer(urdf_path, headless=headless)
+
+    def _execute_command(self, cmd: ControlCmdV1):
+        """Execute movement in the simulator and publish state."""
+        if cmd.type == ControlType.goto and cmd.target_pose:
+            self.step_to_pose(cmd.target_pose)
+        elif cmd.type == ControlType.emergency_stop:
+            self.log("Emergency stop received")
+        else:
+            self.log(f"Unhandled command type: {cmd.type}")
+
+    def step_to_pose(self, pose, link_name="end_effector"):
+        """
+        Step the robot to a new pose and return the transformation matrix.
+
+        Args:
+            pose: List or tuple of joint angles [q1, q2, q3, q4, q5, q6]
+            link_name: Name of the link to get transformation for (default: 'end_effector')
+
+        Returns:
+            tuple: (translation, rotation_matrix) where:
+                - translation: 3D position vector
+                - rotation_matrix: 3x3 rotation matrix
+        """
+        from .utils import quaternion_to_rotation_matrix
+
+        self.visualizer.robot.set_dofs_position(pose)
+        self.visualizer.scene.step()
+
+        link = self.visualizer.robot.get_link(link_name)
+        position = link.get_pos()
+        quat = link.get_quat()
+
+        self.publish_state(list(pose))
+
+        return position, quaternion_to_rotation_matrix(quat)
+
+    def homogeneous_transform(self, link_name="end_effector"):
+        """
+        Get the full 4x4 homogeneous transformation matrix for a specific link.
+
+        Args:
+            link_name: Name of the link to get transformation for (default: 'end_effector')
+
+        Returns:
+            numpy.ndarray: 4x4 homogeneous transformation matrix
+        """
+        from .utils import quaternion_to_rotation_matrix
+
+        link = self.visualizer.robot.get_link(link_name)
+        position = link.get_pos()
+        quat = link.get_quat()
+        rotation_matrix = quaternion_to_rotation_matrix(quat)
+
+        transform = np.eye(4)
+        transform[:3, :3] = rotation_matrix
+        transform[:3, 3] = position
+
+        return transform
+
+
+class HeadlessSimulatedRobotDevice(SimulatedRobotDevice):
+    """Simulated robot running headless (no viewer window)."""
+
+    def __init__(self, urdf_path: Path, robot_id: str = "headless-robot-1", **kwargs):
+        super().__init__(urdf_path=urdf_path, robot_id=robot_id, headless=True, **kwargs)
+
+
+class PhysicalRobotDevice(RobotDevice):
+    """Physical robot controlled via Klipper/Moonraker gcode over MQTT."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        robot_id: str = "physical-robot-1",
+        broker_host: str = "localhost",
+        **kwargs,
+    ):
+        super().__init__(
+            urdf_path=urdf_path,
+            robot_id=robot_id,
+            broker_host=broker_host,
+            source="physical",
+            **kwargs,
+        )
+
+    def _execute_command(self, cmd: ControlCmdV1):
+        """Convert command to gcode and publish to Moonraker via MQTT."""
+        if cmd.type == ControlType.goto and cmd.target_pose:
+            from .base import MovementCommand
+
+            q = cmd.target_pose
+            mc = MovementCommand(q1=q[0], q2=q[1], q3=q[2], q4=q[3], q5=q[4], q6=q[5])
+            api_topic = "manipylator/moonraker/api/request"
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "printer.gcode.script",
+                "params": {"script": mc.gcode},
+            }
+            self.publish(api_topic, payload)
+            self.publish_state(list(q))
+        elif cmd.type == ControlType.emergency_stop:
+            self.log("Emergency stop - sending M112")
+            api_topic = "manipylator/moonraker/api/request"
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "printer.gcode.script",
+                "params": {"script": "M112"},
+            }
+            self.publish(api_topic, payload)
+        else:
+            self.log(f"Unhandled command type: {cmd.type}")
+
+
+# ---------------------------------------------------------------------------
+# MQVisualizer — MQClient consumer that visualizes robot state from MQTT
+# ---------------------------------------------------------------------------
+
+
+class MQVisualizer(MQClient):
+    """MQTT consumer that drives a Genesis visualizer from RobotStateV1 messages."""
+
+    def __init__(
+        self,
+        urdf_path: Path,
+        device_id: str = "mq-visualizer-1",
+        broker_host: str = "localhost",
+        headless: bool = False,
+        **kwargs,
+    ):
+        from .base import Visualizer
+
+        super().__init__(
+            client_id=device_id,
+            broker_host=broker_host,
+            device_id=device_id,
+            device_type=DeviceType.other,
+            device_vendor="ManiPylator",
+            device_model="MQVisualizer",
+            device_capabilities=[],
+            subscriptions=[
+                "manipylator/robots/+/state",
+                "manipylator/state",
+            ],
+            **kwargs,
+        )
+        self.visualizer = Visualizer(urdf_path, headless=headless)
+
+    def handle_message(self, message: AnyMessage, message_schema: str):
+        """Update the visualizer when a RobotStateV1 arrives."""
+        if isinstance(message, RobotStateV1):
+            self.visualizer.robot.set_dofs_position(message.q)
+            self.visualizer.scene.step()
+        else:
+            super().handle_message(message, message_schema)
+
+    def on_message(self, client, userdata, msg):
+        """Handle both new schema messages and legacy raw JSON."""
+        try:
+            data = json.loads(msg.payload)
+            # Try new schema first
+            if "message_schema" in data:
+                super().on_message(client, userdata, msg)
+                return
+            # Legacy format: raw {"q1": ..., "q2": ..., ...}
+            if "q1" in data:
+                dofs = [data[f"q{i}"] for i in range(1, 7)]
+                self.visualizer.robot.set_dofs_position(dofs)
+                self.visualizer.scene.step()
+        except (json.JSONDecodeError, KeyError) as e:
+            self.log(f"Error parsing message: {e}")

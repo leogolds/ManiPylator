@@ -52,6 +52,76 @@ dagger call build-controller --source=.
 dagger call publish-lab --source=. --tag=latest
 ```
 
+#### Camera Service Container
+```bash
+# Build for AMD64 (native) and export as tarball
+dagger call camera-container --source=. \
+  export --path=camera-service-amd.tar
+
+# Build for ARM64 (Raspberry Pi) and export as tarball
+dagger call camera-container --source=. --platform=linux/arm64 \
+  export --path=camera-service-arm.tar
+
+# Publish AMD64 variant to Docker Hub
+dagger call publish-camera-container --source=. \
+  --tag=latest \
+  --registry-username=leogold \
+  --registry-password=env:DOCKER_TOKEN
+
+# Publish ARM64 variant to Docker Hub
+dagger call publish-camera-container --source=. \
+  --platform=linux/arm64 \
+  --tag=latest \
+  --registry-username=leogold \
+  --registry-password=env:DOCKER_TOKEN
+```
+
+Images are tagged as `leogold/manipylator:camera-service-{amd|arm}-{tag}`.
+
+To run on a machine with USB cameras (see `containers/camera/compose.yaml`):
+```bash
+cd containers/camera
+
+# AMD64 (default)
+docker compose up -d
+
+# ARM64 (Raspberry Pi)
+ARCH=arm docker compose up -d
+```
+
+#### Profiling the Camera Service
+
+Scripts in `manual_tests/` help verify and profile a running camera and pipeline.
+They expect the camera service, MQTT broker, and (for pipeline tests) Redis + Huey
+workers to be running.
+
+```bash
+# End-to-end pipeline profiler -- camera health, REST latency, MJPEG FPS,
+# frame staleness, and analysis-pipeline stats in a single report
+python manual_tests/test_pipeline_profile.py
+python manual_tests/test_pipeline_profile.py \
+  --rest-url http://192.168.1.50:8001 \
+  --stream-url http://192.168.1.50:8000/video \
+  --duration 30
+
+# Frame lifecycle profiler -- frame age and MediaPipe processing time
+python manual_tests/test_frame_profiling.py
+
+# REST vs MJPEG latency comparison and MQTT hand-guard event timing
+python manual_tests/test_latency.py --duration 60
+
+# Huey task round-trip latency (needs Huey workers running)
+python manual_tests/test_huey_performance.py
+
+# MediaPipe hand detection on fixed/live images (no pipeline required)
+python manual_tests/test_hand_detection.py --show
+python manual_tests/test_hand_detection.py --live-monitor
+
+# MQTT stream discovery -- verify cameras publish StreamInfoV1
+python manual_tests/test_discovery.py
+python manual_tests/test_discovery.py --interactive
+```
+
 #### Development Stack
 ```bash
 # Spin up full stack in virtual mode

@@ -131,25 +131,43 @@ class StateViewer(param.Parameterized):
         MQTT callback for successful connection. Subscribes to relevant topics.
         """
         print(f"Connected with result code {reason_code}")
+        # New RobotStateV1 topic (wildcard for all robots)
+        client.subscribe("manipylator/robots/+/state")
+        # Legacy topics (backward compat)
         client.subscribe("manipylator/state")
         client.subscribe("manipylator/target")
         client.subscribe("manipylator/stepper_energized")
+
+    def _update_q_from_list(self, q_obj: Q, values: list) -> None:
+        """Update a Q instance from a list of joint values."""
+        for i, val in enumerate(values[:6]):
+            setattr(q_obj, f"q{i + 1}", val)
 
     def on_message(self, client: mqtt.Client, userdata, msg) -> None:
         """
         MQTT callback for incoming messages. Updates state based on topic.
         """
         try:
+            d = json.loads(msg.payload)
+
+            # New RobotStateV1 messages on manipylator/robots/+/state
+            if msg.topic.startswith("manipylator/robots/") and msg.topic.endswith("/state"):
+                if "message_schema" in d and "q" in d:
+                    self._update_q_from_list(self.pose, d["q"])
+                    return
+
+            # Legacy topics
             if msg.topic == "manipylator/state":
-                d = json.loads(msg.payload)
-                self.pose.q1 = d["q1"]
-                self.pose.q2 = d["q2"]
-                self.pose.q3 = d["q3"]
-                self.pose.q4 = d["q4"]
-                self.pose.q5 = d["q5"]
-                self.pose.q6 = d["q6"]
+                if "q" in d and isinstance(d["q"], list):
+                    self._update_q_from_list(self.pose, d["q"])
+                else:
+                    self.pose.q1 = d["q1"]
+                    self.pose.q2 = d["q2"]
+                    self.pose.q3 = d["q3"]
+                    self.pose.q4 = d["q4"]
+                    self.pose.q5 = d["q5"]
+                    self.pose.q6 = d["q6"]
             elif msg.topic == "manipylator/target":
-                d = json.loads(msg.payload)
                 self.target_pose.q1 = d["q1"]
                 self.target_pose.q2 = d["q2"]
                 self.target_pose.q3 = d["q3"]

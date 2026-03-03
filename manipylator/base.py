@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-import json
+import warnings
 from pathlib import Path
 from typing import Sequence
 
 import roboticstoolbox as rtb
 
 from .comms import MQTTConnection
-from manipylator.utils import quaternion_to_rotation_matrix
+from .utils import quaternion_to_rotation_matrix
 
 
 @dataclass(frozen=True)
@@ -109,50 +109,25 @@ class Visualizer:
         return scene, robot, camera
 
 
-class MQVisualizer(Visualizer):
-    def __init__(self, urdf_path: Path, mq_host="localhost"):
-        try:
-            super().__init__(urdf_path)
-            # self.visualizer = Visualizer(urdf_path)
-            self.mq = MQTTConnection(host=mq_host)
-            self.mq.run_gcode_script = self.run_gcode_script
-            self.mq.client.on_connect = self.on_connect
-            self.mq.client.on_message = self.on_message
-        except Exception as e:
-            raise e
-
-    def run_gcode_script(self, script: str):
-        raise SyntaxError("run_gcode_script is unavailable in MQVisualizer")
-
-    # The callback for when the client receives a CONNACK response from the server.
-    def on_connect(self, client, userdata, flags, reason_code, properties):
-        print(f"Connected with result code {reason_code}")
-        # Subscribing in on_connect() means that if we lose the connection and
-        # reconnect then subscriptions will be renewed.
-        client.subscribe("manipylator/state")
-
-    # The callback for when a PUBLISH message is received from the server.
-    def on_message(self, client, userdata, msg):
-        print(f"got {msg.payload}")
-
-        d = json.loads(msg.payload)
-        dofs = [d["q1"], d["q2"], d["q3"], d["q4"], d["q5"], d["q6"]]
-
-        self.robot.set_dofs_position(dofs)
-        self.scene.step()
+# ---------------------------------------------------------------------------
+# Backward-compatible aliases (deprecated)
+# ---------------------------------------------------------------------------
 
 
 class Robot:
+    """Deprecated: use RobotDevice instead."""
+
     def __init__(self, urdf_path: Path, mq_host=None):
-        try:
-            self.model = rtb.Robot.URDF(urdf_path.absolute())
-            if mq_host:
-                self.mq = MQTTConnection(host=mq_host)
-            else:
-                self.mq = None
-            # self.visualizer = Visualizer(urdf_path)
-        except Exception as e:
-            raise e
+        warnings.warn(
+            "Robot is deprecated, use RobotDevice instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.model = rtb.Robot.URDF(urdf_path.absolute())
+        if mq_host:
+            self.mq = MQTTConnection(host=mq_host)
+        else:
+            self.mq = None
 
     def send_control_sequence(self, seq: MovementSequence):
         for command in seq.movements:
@@ -160,73 +135,56 @@ class Robot:
 
 
 class SimulatedRobot(Robot):
+    """Deprecated: use SimulatedRobotDevice instead."""
+
     def __init__(self, urdf_path: Path, mq_host=None, headless=False):
-        try:
-            super().__init__(urdf_path, mq_host=mq_host)
-            self.visualizer = Visualizer(urdf_path, headless=headless)
-        except Exception as e:
-            raise e
+        warnings.warn(
+            "SimulatedRobot is deprecated, use SimulatedRobotDevice instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Skip Robot.__init__ deprecation warning by calling grandparent
+        self.model = rtb.Robot.URDF(urdf_path.absolute())
+        if mq_host:
+            self.mq = MQTTConnection(host=mq_host)
+        else:
+            self.mq = None
+        self.visualizer = Visualizer(urdf_path, headless=headless)
 
     def step_to_pose(self, pose, link_name="end_effector"):
-        """
-        Step the robot to a new pose and return the transformation matrix.
-
-        Args:
-            pose: List or tuple of joint angles [q1, q2, q3, q4, q5, q6]
-            link_name: Name of the link to get transformation for (default: 'end_effector')
-
-        Returns:
-            tuple: (translation, rotation_matrix) where:
-                - translation: 3D position vector
-                - rotation_matrix: 3x3 rotation matrix
-        """
-        # Set the robot's joint positions
         self.visualizer.robot.set_dofs_position(pose)
-
-        # Step the simulation
         self.visualizer.scene.step()
-
-        # Get the specified link
         link = self.visualizer.robot.get_link(link_name)
-
-        # Get position and orientation
         position = link.get_pos()
-        quat = link.get_quat()  # Returns quaternion
-
+        quat = link.get_quat()
         return position, quaternion_to_rotation_matrix(quat)
 
     def homogeneous_transform(self, link_name="end_effector"):
-        """
-        Get the full 4x4 homogeneous transformation matrix for a specific link.
-
-        Args:
-            link_name: Name of the link to get transformation for (default: 'end_effector')
-
-        Returns:
-            numpy.ndarray: 4x4 homogeneous transformation matrix
-        """
-        # Use step_to_pose to get position and rotation matrix using class methods
-        # Get the specified link
         link = self.visualizer.robot.get_link(link_name)
-        # Get position and orientation
         position = link.get_pos()
-        quat = link.get_quat()  # Returns quaternion
+        quat = link.get_quat()
         rotation_matrix = quaternion_to_rotation_matrix(quat)
-
-        # Create 4x4 homogeneous transformation matrix
         import numpy as np
 
         transform = np.eye(4)
         transform[:3, :3] = rotation_matrix
         transform[:3, 3] = position
-
         return transform
 
 
 class HeadlessSimulatedRobot(SimulatedRobot):
+    """Deprecated: use HeadlessSimulatedRobotDevice instead."""
+
     def __init__(self, urdf_path: Path, mq_host=None):
-        #        raise NotImplementedError("Fails to start")
-        try:
-            super().__init__(urdf_path, headless=True)
-        except Exception as e:
-            raise e
+        warnings.warn(
+            "HeadlessSimulatedRobot is deprecated, use HeadlessSimulatedRobotDevice instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Directly initialize to avoid double deprecation warnings
+        self.model = rtb.Robot.URDF(urdf_path.absolute())
+        if mq_host:
+            self.mq = MQTTConnection(host=mq_host)
+        else:
+            self.mq = None
+        self.visualizer = Visualizer(urdf_path, headless=True)

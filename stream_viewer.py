@@ -53,6 +53,10 @@ class StreamViewer:
         self.frame_count = 0
         self.fetch_errors = 0
 
+        # Camera lifecycle state for display messages
+        self.camera_went_offline = False
+        self.ever_received_frame = False
+
         # Safety state from hand guard events
         self.safety_state = "unknown"  # "clear", "hand_detected", "unknown"
         self.safety_confidence = 0.0
@@ -112,6 +116,7 @@ class StreamViewer:
         if is_new:
             ts = time.strftime("%H:%M:%S")
             print(f"[{ts}] Discovered camera '{camera_id}' -> {latest_url}")
+            self.camera_went_offline = False
             # Auto-select first camera
             if self.active_camera is None:
                 self.active_camera = camera_id
@@ -122,12 +127,18 @@ class StreamViewer:
             ts = time.strftime("%H:%M:%S")
             print(f"[{ts}] Camera '{status.camera_id}' went offline")
             del self.cameras[status.camera_id]
+            if self.ever_received_frame:
+                self.camera_went_offline = True
             if self.active_camera == status.camera_id:
+                # Clear stale frame so display falls back to waiting screen
+                self.latest_frame.clear()
                 self.active_camera = (
                     next(iter(self.cameras)) if self.cameras else None
                 )
                 if self.active_camera:
                     print(f"[{ts}] Switched to camera '{self.active_camera}'")
+                else:
+                    print(f"[{ts}] No cameras available — waiting for discovery")
 
     def _handle_hand_guard(self, event: HandGuardEventV1):
         """Handle a hand guard safety event."""
@@ -167,6 +178,7 @@ class StreamViewer:
                 self.latest_metadata = json.loads(meta_header)
 
             self.fetch_errors = 0
+            self.ever_received_frame = True
             return frame
 
         except Exception as e:
@@ -174,6 +186,13 @@ class StreamViewer:
             if self.fetch_errors <= 3 or self.fetch_errors % 30 == 0:
                 ts = time.strftime("%H:%M:%S")
                 print(f"[{ts}] Fetch error ({self.fetch_errors}): {e}")
+            # After many consecutive failures, clear the stale frame so the
+            # display loop falls back to a "waiting" screen instead of
+            # showing a frozen image indefinitely.
+            if self.fetch_errors >= 10 and self.latest_frame:
+                self.latest_frame.clear()
+                ts = time.strftime("%H:%M:%S")
+                print(f"[{ts}] Camera appears offline — cleared stale frame")
             return None
 
     def _fetch_loop(self):
@@ -218,15 +237,19 @@ class StreamViewer:
                 else:
                     # Show a waiting screen
                     blank = np.zeros((480, 640, 3), dtype=np.uint8)
-                    status = (
-                        f"Waiting for camera... ({len(self.cameras)} discovered)"
-                        if self.cameras
-                        else "Discovering cameras via MQTT..."
-                    )
+                    if self.cameras:
+                        status = f"Waiting for camera... ({len(self.cameras)} discovered)"
+                    else:
+                        status = "Discovering cameras via MQTT..."
                     cv2.putText(
                         blank, status, (30, 240),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 200), 1,
                     )
+                    if self.camera_went_offline:
+                        cv2.putText(
+                            blank, "Camera went offline", (30, 280),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 140, 255), 1,
+                        )
                     cv2.imshow("ManiPylator - Camera Feed", blank)
 
                 key = cv2.waitKey(33) & 0xFF  # ~30 fps display rate
