@@ -25,6 +25,7 @@ from .comms import MQClient
 from .devices import StreamingCamera
 from .schemas import (
     AnalysisTriggerV1,
+    DeviceAboutV1,
     HandGuardEventV1,
     DeviceType,
     DeviceCapability,
@@ -276,6 +277,7 @@ class PeriodicHandDetector(HandDetector):
         camera_id: str = "camera_01",
         interval_seconds: float = 1.0,
         auto_discover: bool = False,
+        filter_belongs_to: Optional[str] = None,
         **kwargs,
     ):
         # Initialize the parent HandDetector
@@ -285,10 +287,14 @@ class PeriodicHandDetector(HandDetector):
         self.trigger_thread = None
         self.running = False
         self.auto_discover = auto_discover
+        self.filter_belongs_to = filter_belongs_to
         self.silent = False
 
         # Discovery state: camera_id -> {"stream_url": str, "discovered_at": float}
         self.discovered_cameras: Dict[str, dict] = {}
+
+        # Ownership state: camera_id -> belongs_to value (from DeviceAboutV1)
+        self._device_belongs_to: Dict[str, Optional[str]] = {}
 
         if auto_discover:
             # Subscribe to stream discovery and status topics
@@ -300,10 +306,44 @@ class PeriodicHandDetector(HandDetector):
             self.message_handlers["manipylator/stream/status/v1"] = (
                 self._handle_stream_status
             )
+
+            if filter_belongs_to:
+                self.subscriptions.append("manipylator/devices/+/about")
+                self.message_handlers["manipylator/device/about/v1"] = (
+                    self._handle_device_about
+                )
         else:
             # Static configuration -- single camera
             self.static_stream_url = stream_url
             self.static_camera_id = camera_id
+
+    def _owns_camera(self, camera_id: str) -> bool:
+        """Check whether *camera_id* passes the ``filter_belongs_to`` gate.
+
+        When no filter is set every camera is accepted.  When a filter is
+        active, the camera must have announced a matching ``belongs_to``
+        via ``DeviceAboutV1`` -- if no about message has arrived yet the
+        camera is *deferred* (not accepted, not rejected).
+        """
+        if not self.filter_belongs_to:
+            return True
+        return self._device_belongs_to.get(camera_id) == self.filter_belongs_to
+
+    def _handle_device_about(self, device_about: DeviceAboutV1):
+        """Track ``belongs_to`` from DeviceAboutV1 for ownership filtering."""
+        device_id = device_about.device_id
+        self._device_belongs_to[device_id] = device_about.belongs_to
+
+        if device_about.type != DeviceType.camera:
+            return
+
+        if self.filter_belongs_to and device_about.belongs_to != self.filter_belongs_to:
+            if device_id in self.discovered_cameras:
+                del self.discovered_cameras[device_id]
+                self.log(
+                    f"Camera '{device_id}' removed: belongs_to='{device_about.belongs_to}' "
+                    f"does not match filter '{self.filter_belongs_to}'"
+                )
 
     def _handle_stream_info(self, stream_info: StreamInfoV1):
         """Handle a stream discovery message. Registers or updates a camera."""
@@ -317,6 +357,12 @@ class PeriodicHandDetector(HandDetector):
         if not stream_url:
             self.log(
                 f"Ignoring stream info for {camera_id}: no usable stream URL found"
+            )
+            return
+
+        if not self._owns_camera(camera_id):
+            self.log(
+                f"Ignoring camera '{camera_id}': does not belong to '{self.filter_belongs_to}'"
             )
             return
 

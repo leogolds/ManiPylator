@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timezone
 from functools import cache
 from time import sleep
-from typing import Optional, List, Dict, Callable
+from typing import Callable, Dict, List, Optional
 
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
@@ -76,6 +76,8 @@ class MQClient:
         device_capabilities: List[DeviceCapability] = None,
         device_endpoints: Dict[str, str] = None,
         device_owner: str = "demo_user",
+        belongs_to: Optional[str] = None,
+        child_devices: Optional[List[str]] = None,
     ):
         self.client_id = client_id
         self.broker_host = broker_host
@@ -96,6 +98,8 @@ class MQClient:
         self.device_capabilities = device_capabilities or []
         self.device_endpoints = device_endpoints or {}
         self.device_owner = device_owner
+        self.belongs_to = belongs_to
+        self.child_devices = child_devices or []
         self.start_time = time.time()
 
     def log(self, message: str):
@@ -177,6 +181,8 @@ class MQClient:
             capabilities=self.device_capabilities,
             endpoints=self.device_endpoints,
             owner=self.device_owner,
+            belongs_to=self.belongs_to,
+            child_devices=self.child_devices,
         )
 
         self.publish(device_about.topic, device_about, retain=True)

@@ -125,6 +125,14 @@ class DeviceAboutV1(MessageBase):
         None, description="JSON schema for device configuration"
     )
     owner: Optional[str] = None
+    belongs_to: Optional[DeviceID] = Field(
+        None,
+        description="Parent device ID this device is associated with (e.g., a camera mounted on a robot)",
+    )
+    child_devices: List[DeviceID] = Field(
+        default_factory=list,
+        description="Device IDs this device expects to own (e.g., cameras attached to a robot)",
+    )
 
     @property
     def topic(self) -> str:

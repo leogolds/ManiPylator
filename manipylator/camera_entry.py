@@ -9,6 +9,7 @@ All configuration is via environment variables:
     MQTT_BROKER_PORT    MQTT broker port (default: 1883)
     WEBGEAR_PORT        WebGear MJPEG streaming port (default: 8000)
     WEBGEAR_HOST        Bind address for web servers (default: 0.0.0.0)
+    BELONGS_TO          Parent device ID this camera belongs to (optional)
 """
 
 import os
@@ -33,6 +34,7 @@ def main():
         broker_port=int(os.environ.get("MQTT_BROKER_PORT", "1883")),
         webgear_port=int(os.environ.get("WEBGEAR_PORT", "8000")),
         webgear_host=os.environ.get("WEBGEAR_HOST", "0.0.0.0"),
+        belongs_to=os.environ.get("BELONGS_TO"),
     )
 
     def handle_signal(signum, frame):

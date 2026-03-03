@@ -47,6 +47,7 @@ class StreamingCamera(MQClient):
         device_vendor: str = "ManiPylator",
         device_model: str = "CameraGear-1000",
         device_owner: str = "camera_user",
+        belongs_to: Optional[str] = None,
     ):
         # Initialize MQClient with camera-specific settings
         super().__init__(
@@ -68,6 +69,7 @@ class StreamingCamera(MQClient):
                 "latest_frame": f"http://{webgear_host}:{webgear_port + 1}/latest",
             },
             device_owner=device_owner,
+            belongs_to=belongs_to,
         )
 
         # Set MQTT last-will so the broker publishes offline status even if
@@ -598,6 +600,7 @@ class RobotDevice(MQClient):
         broker_port: int = 1883,
         source: str = "simulated",
         extra_capabilities: Optional[List[DeviceCapability]] = None,
+        child_devices: Optional[List[str]] = None,
         **kwargs,
     ):
         import roboticstoolbox as rtb
@@ -618,6 +621,7 @@ class RobotDevice(MQClient):
             device_vendor=kwargs.pop("device_vendor", "ManiPylator"),
             device_model=kwargs.pop("device_model", "6DOF-Arm"),
             device_capabilities=capabilities,
+            child_devices=child_devices,
             subscriptions=[
                 "manipylator/control/commands",
                 f"manipylator/robots/{robot_id}/command",

@@ -35,6 +35,7 @@ services:
       MQTT_BROKER_PORT: 1883
       WEBGEAR_PORT: 8000
       WEBGEAR_HOST: 0.0.0.0
+      BELONGS_TO: ${BELONGS_TO:-}
     restart: unless-stopped
 
   camera-right:
@@ -51,4 +52,5 @@ services:
       MQTT_BROKER_PORT: 1883
       WEBGEAR_PORT: 8010
       WEBGEAR_HOST: 0.0.0.0
+      BELONGS_TO: ${BELONGS_TO:-}
     restart: unless-stopped
