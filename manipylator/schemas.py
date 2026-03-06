@@ -117,9 +117,9 @@ class DeviceAboutV1(MessageBase):
     vendor: Optional[str] = None
     model: Optional[str] = None
     capabilities: List[DeviceCapability] = Field(default_factory=list)
-    endpoints: Dict[str, str] = Field(
+    endpoints: Dict[str, Union[str, FastAPIEndpointInfo]] = Field(
         default_factory=dict,
-        description="Service endpoints (e.g., 'netgear': 'tcp://host:port')",
+        description="Service endpoints. Values can be plain URLs (e.g. 'tcp://host:port') or structured FastAPIEndpointInfo.",
     )
     config_schema: Optional[str] = Field(
         None, description="JSON schema for device configuration"

@@ -414,6 +414,9 @@ class StreamingCamera(MQClient):
                 f"Published stream info with FastAPI endpoints to {self.stream_info.topic}"
             )
 
+            self.device_endpoints.update(fastapi_endpoints)
+            self.publish_device_about()
+
     def _publish_stream_status(
         self, state: StateStr = StateStr.online, fps: float = None
     ):
