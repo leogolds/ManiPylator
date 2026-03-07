@@ -3,7 +3,21 @@
 
 3D printed 6DOF robotic manipulator powered by your favorite snake-based programming language
 
-<br><br>
+[![Robotics Toolbox](https://img.shields.io/badge/Robotics_Toolbox-kinematics-0ea5e9)](https://github.com/petercorke/robotics-toolbox-python)
+[![Genesis](https://img.shields.io/badge/Genesis-simulation-0ea5e9)](https://genesis-world.readthedocs.io/en/latest/)
+[![Klipper](https://img.shields.io/badge/Klipper-firmware-64748b)](https://www.klipper3d.org/)
+[![VidGear](https://img.shields.io/badge/VidGear-streaming-22c55e)](https://github.com/abhiTronix/vidgear)
+[![MediaPipe](https://img.shields.io/badge/MediaPipe-vision-22c55e)](https://ai.google.dev/edge/mediapipe/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-vision-22c55e)](https://opencv.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-REST-f59e0b)](https://fastapi.tiangolo.com/)
+[![Pydantic](https://img.shields.io/badge/Pydantic-schemas-f59e0b)](https://docs.pydantic.dev/)
+[![Huey](https://img.shields.io/badge/Huey-distributed_tasks-8b5cf6)](https://huey.readthedocs.io/)
+[![Mosquitto](https://img.shields.io/badge/Mosquitto-message_queue-8b5cf6)](https://mosquitto.org/)
+[![Redis](https://img.shields.io/badge/Redis-task_queue-8b5cf6)](https://redis.io/)
+[![Panel](https://img.shields.io/badge/Panel-application_development-ec4899)](https://panel.holoviz.org/)
+[![JupyterLab](https://img.shields.io/badge/JupyterLab-notebooks-ec4899)](https://jupyter.org/)
+
+<br>
 
 ## What is this?
 
@@ -40,7 +54,7 @@ Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/0
 
 - **I'm an experienced roboticist used to X, why should I care?**: this project aims to provide an all-in-one state-of-the-art open-source robotics platform in the Python ecosystem. All components are containerized and provide reproducible environments for robotics projects and experimentation. Furthermore, the wide range of included robotics ([OMPL](https://ompl.kavrakilab.org/), [Genesis](https://genesis-world.readthedocs.io/en/latest/#), [OpenCV](https://opencv.org/)) & visualization ([HoloViz](https://holoviz.org/), [Panel](https://panel.holoviz.org/)) tools enables advanced workflows for simulation, analysis, and development of interactive dashboards or tools.
 
-- **I would like to help with development**: check out the [CONTRIBUTING.md](CONTRIBUTING.md) file or open an issue. To learn how to build the project locally check out our [Local Development instructions](docs/LOCAL_DEVELOPMENT.md).
+- **I would like to help with development**: check out the [CONTRIBUTING.md](docs/CONTRIBUTING.md) file or open an issue. To learn how to build the project locally check out our [Local Development instructions](docs/LOCAL_DEVELOPMENT.md).
 
 - **I'm just curious. How does this work?**: Please check out our [Architecture](docs/ARCHITECTURE.md) outline to understand how things are put together.
 
@@ -48,7 +62,7 @@ Now go take a look at our [Start Here notebook](http://localhost:8888/lab/tree/0
 
 ## Included Tutorial Collections
 
-This repository includes two excellent tutorial collections that provide comprehensive coverage of robotics fundamentals. These tutorials complement the comprehensive robotics textbook [*Robotics, Vision and Control*](https://petercorke.com/wordpress/books/robotics-vision-control/) by Peter Corke. Powered by the [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) these tutorials provide hands-on examples perfect for novice roboticists.
+This repository includes two excellent tutorial collections that provide comprehensive coverage of robotics fundamentals. These tutorials complement the comprehensive robotics textbook [*Robotics, Vision and Control*](https://link.springer.com/book/10.1007/978-3-031-06469-2) by Peter Corke. Powered by the [Robotics Toolbox for Python](https://github.com/petercorke/robotics-toolbox-python) these tutorials provide hands-on examples perfect for novice roboticists.
 
 For more details, visit [Peter Corke's website](https://petercorke.com/rvc3p/home/).
 

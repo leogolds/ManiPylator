@@ -4,7 +4,7 @@ Reference file for educational context. The agent reads this when users ask abou
 
 ## Textbook Chapter Mapping (Corke, RVC 3rd ed. Python)
 
-The `external/` tutorial collections and ManiPylator's own notebooks are companions to *Robotics, Vision and Control* (3rd ed., Springer 2023) by Peter Corke. The table below maps each book chapter to what can be practiced in this project. Coverage level indicates how deeply the project supports the topic: **Full** = dedicated notebooks + API, **Partial** = API or exercises available, **Context** = relevant background but no direct tooling.
+The `external/` tutorial collections and ManiPylator's own notebooks are companions to [*Robotics, Vision and Control*](https://link.springer.com/book/10.1007/978-3-031-06469-2) (3rd ed., Springer 2023) by Peter Corke. The table below maps each book chapter to what can be practiced in this project. Coverage level indicates how deeply the project supports the topic: **Full** = dedicated notebooks + API, **Partial** = API or exercises available, **Context** = relevant background but no direct tooling.
 
 ### Part I: Foundations
 
@@ -65,7 +65,7 @@ Not directly applicable to ManiPylator (which is a manipulator arm). However, th
 
 - [bioMechatronics Lab lecture series](https://www.youtube.com/playlist?list=PLY6RHB0yqJVasji1rwZAGYirD8zW1ipj-) -- comprehensive course from basics to surgical robotics. Key lectures: [rigid transformations](https://www.youtube.com/watch?v=1-_HhBlQRp8&list=PLY6RHB0yqJVasji1rwZAGYirD8zW1ipj-&index=2) (Ch 2), [forward kinematics](https://www.youtube.com/watch?v=6sd9fiinq5U&list=PLY6RHB0yqJVasji1rwZAGYirD8zW1ipj-&index=5) (Ch 7), [inverse kinematics](https://www.youtube.com/watch?v=RzaeS5LLhxA&list=PLY6RHB0yqJVasji1rwZAGYirD8zW1ipj-&index=7) (Ch 7.2)
 - [Robotics Explained](https://robotics-explained.com/) -- interactive 2D demos for [forward](https://robotics-explained.com/forwardkinematics) and [inverse](https://robotics-explained.com/inversekinematics) kinematics (Ch 7)
-- *Robotics, Vision and Control* by Peter Corke ([website](https://petercorke.com/rvc3p/home/)) -- the textbook behind the `external/` tutorial collections
+- [*Robotics, Vision and Control*](https://link.springer.com/book/10.1007/978-3-031-06469-2) by Peter Corke ([author's website](https://petercorke.com/rvc3p/home/)) -- the textbook behind the `external/` tutorial collections
 
 ### Quaternion Resources (Ch 2.3)
 

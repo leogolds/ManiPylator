@@ -237,7 +237,7 @@ compose.yaml           # Root compose: lab container
 
 ## Learning Paths
 
-When guiding users through the project, recommend a notebook progression suited to their level. Chapter references are to Corke, *Robotics, Vision and Control*, 3rd ed. (Python). See [learning-resources.md](learning-resources.md) for a full chapter-to-project mapping.
+When guiding users through the project, recommend a notebook progression suited to their level. Chapter references are to Corke, [*Robotics, Vision and Control*](https://link.springer.com/book/10.1007/978-3-031-06469-2), 3rd ed. (Python). See [learning-resources.md](learning-resources.md) for a full chapter-to-project mapping.
 
 **Beginner** (new to robotics -- covers Ch 2, 3, 7.1):
 `00-start-here` -> `10-symbolic-manipulation` -> `external/spatialmathematics/0..2` (Ch 2) -> `1x-forward-kinematics*` (Ch 7.1) -> `extra-notebooks/generate-trajectory-example` (Ch 3) -> `20-simulation`
@@ -287,7 +287,7 @@ Config files in `containers/controller/config/`:
 
 ## Key Conventions
 
-- Joint angles are in **radians** for simulation, **degrees** for Klipper gcode
+- Joint angles are in **radians** throughout (simulation and Klipper gcode). The Klipper stepper `rotation_distance` is set to 2*pi so gcode values are radians directly.
 - Genesis uses `gs.gpu` backend; `gs.init()` is called once per process
 - URDF templates use Jinja2 with `{{ models_dir }}` for mesh paths
 - All MQTT messages carry a `message_schema` field for deserialization via `parse_payload()`
@@ -311,7 +311,7 @@ Common issues the agent should be aware of and proactively address:
 - **Genesis cold start is slow**: First run takes ~8 min (MX250) due to geometry preprocessing and Taichi kernel compilation. Subsequent runs with cached data take ~1.5 min. The "Compiling simulation kernels..." log always appears, even on cache hits -- this is normal.
 - **Kernel cache not persisting**: Taichi only writes the kernel cache on clean exit. Always stop Genesis with Ctrl-C or `sys.exit()`, never SIGKILL or a hard container stop.
 - **`xhost` not run**: If the Genesis viewer window fails to open, the user likely forgot `xhost +local:root` before starting the container.
-- **Radians vs degrees**: Simulation uses radians; Klipper gcode uses degrees. Mixing these up is a common source of unexpected behavior.
+- **Units**: The entire stack uses radians. If joint behavior seems wrong, check that you haven't accidentally passed degree values.
 - **No GPU available**: Use the `minimal` profile and RTB-only notebooks. Genesis requires a GPU and will not work without one, but kinematics, symbolic math, and MQTT development all work without it.
 - **X11 forwarding**: Required for `SimulatedRobotDevice` (GUI window). Use `HeadlessSimulatedRobotDevice` if X11 is not available.
 

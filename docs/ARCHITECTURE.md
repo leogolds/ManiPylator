@@ -37,10 +37,10 @@ graph TB
         end
         subgraph simulated [Simulated Embodiment]
             GenesisViz["Genesis Visualizer"]
-            SimRobot["SimulatedRobot"]
+            SimRobot["SimulatedRobotDevice"]
             MQViz["MQVisualizer -- MQTT to Genesis bridge"]
         end
-        RobotBase["Robot -- RTB kinematics model"]
+        RobotBase["RobotDevice -- RTB kinematics model"]
         URDF["URDF model -- Jinja2 templates"]
         MovementCmd["MovementCommand / MovementSequence"]
     end
@@ -206,7 +206,7 @@ classDiagram
         +size : int
     }
 
-    class Robot {
+    class RobotDevice {
         +model : rtb.Robot
         +mq : MQTTConnection
         +send_control_sequence(seq)
@@ -218,24 +218,24 @@ classDiagram
         +camera
     }
 
-    class SimulatedRobot {
+    class SimulatedRobotDevice {
         +visualizer : Visualizer
         +step_to_pose(pose)
         +homogeneous_transform()
     }
 
-    class HeadlessSimulatedRobot
+    class HeadlessSimulatedRobotDevice
 
     class MQVisualizer {
         +mq : MQTTConnection
         +on_message() -- drives Genesis from MQTT
     }
 
-    Robot <|-- SimulatedRobot
-    SimulatedRobot <|-- HeadlessSimulatedRobot
+    RobotDevice <|-- SimulatedRobotDevice
+    SimulatedRobotDevice <|-- HeadlessSimulatedRobotDevice
     Visualizer <|-- MQVisualizer
-    SimulatedRobot --> Visualizer : has
-    Robot --> MovementCommand : uses
+    SimulatedRobotDevice --> Visualizer : has
+    RobotDevice --> MovementCommand : uses
     MovementSequence --> MovementCommand : contains
 ```
 
@@ -260,7 +260,7 @@ flowchart LR
     subgraph simulated_path ["Simulated Robot Path"]
         direction LR
         QVals["MovementCommand.q"]
-        StepPose["SimulatedRobot.step_to_pose()"]
+        StepPose["SimulatedRobotDevice.step_to_pose()"]
         GenScene["Genesis scene.step()"]
         QVals --> StepPose --> GenScene
     end
@@ -310,7 +310,7 @@ graph TD
         Tasks["tasks.py<br/>Huey RedisHuey tasks<br/>detect_hands_latest<br/>OpenCVClient, MediaPipe"]
         App["app.py<br/>Panel StateViewer UI"]
         Utils["utils.py<br/>URDF rendering<br/>trajectory helpers<br/>quaternion math"]
-        Base["base.py<br/>Robot, SimulatedRobot<br/>Visualizer, MQVisualizer"]
+        Base["base.py<br/>Visualizer, MovementCommand<br/>(legacy Robot classes -- deprecated)"]
     end
 
     Comms --> Schemas
@@ -340,53 +340,20 @@ graph TD
 All MQTT topics follow the pattern `manipylator/<domain>/<entity>/<action>`.
 Each message carries a `message_schema` field used for deserialization.
 
-#### Device Discovery and Status
+The full topic reference with all schemas, subscription patterns, and
+deserialization examples is in [MQTT_TOPICS.md](MQTT_TOPICS.md).
 
-| Topic Pattern                           | Schema                          | Description                         |
-|-----------------------------------------|---------------------------------|-------------------------------------|
-| `manipylator/devices/{id}/about`        | `manipylator/device/about/v1`   | Device capabilities and endpoints (retained) |
-| `manipylator/devices/{id}/status`       | `manipylator/device/status/v1`  | Online/offline state, uptime        |
-| `manipylator/devices/{id}/config`       | `manipylator/device/config/v1`  | Runtime configuration snapshot      |
-| `manipylator/devices/{id}/health`       | `manipylator/device/health/v1`  | CPU, memory, FPS, latency metrics   |
+Key topic groups:
 
-#### Camera Streams
-
-| Topic Pattern                           | Schema                          | Description                         |
-|-----------------------------------------|---------------------------------|-------------------------------------|
-| `manipylator/streams/{camera_id}/info`  | `manipylator/stream/info/v1`    | Stream discovery: WebGear + FastAPI endpoints (retained) |
-| `manipylator/streams/{camera_id}/status`| `manipylator/stream/status/v1`  | Stream online/offline, FPS, resolution |
-| `manipylator/streams/{camera_id}/frame` | `manipylator/stream/frame/v1`   | Base64-encoded frame snapshot (retained) |
-
-#### Analysis and Safety
-
-| Topic Pattern                           | Schema                              | Description                         |
-|-----------------------------------------|-------------------------------------|-------------------------------------|
-| `manipylator/analysis/{proc_id}/trigger`| `manipylator/analysis/trigger/v1`   | Request analysis on a camera stream |
-| `manipylator/analysis/{proc_id}/status` | `manipylator/analysis/status/v1`    | Processor online/offline            |
-| `manipylator/analysis/{proc_id}/results`| `manipylator/analysis/object_offset/v1` | Object offset analysis result   |
-| `manipylator/safety/hand_guard`         | `manipylator/safety/hand_guard/v1`  | Debounced hand-detection events     |
-| `manipylator/safety/events`             | `manipylator/safety/event/v1`       | General safety events (pause, e-stop, resume) |
-
-#### Robot Control
-
-| Topic Pattern                           | Schema                              | Description                         |
-|-----------------------------------------|-------------------------------------|-------------------------------------|
-| `manipylator/control/commands`          | `manipylator/control/command/v1`    | Control commands (pause, resume, goto, e-stop) |
-| `manipylator/control/feedback`          | `manipylator/control/feedback/v1`   | Execution status, progress, current pose |
-
-#### Sensors
-
-| Topic Pattern                              | Schema                            | Description                        |
-|--------------------------------------------|-----------------------------------|------------------------------------|
-| `manipylator/sensors/{sensor_id}/distance` | `manipylator/sensor/distance/v1`  | Distance measurement in meters     |
-
-#### System
-
-| Topic Pattern                           | Schema                              | Description                         |
-|-----------------------------------------|-------------------------------------|-------------------------------------|
-| `manipylator/system/discovery`          | `manipylator/system/discovery/v1`   | System-wide device roster           |
-| `manipylator/system/health`             | `manipylator/system/health/v1`      | Aggregate system health             |
-| `manipylator/system/errors`             | `manipylator/system/error/v1`       | Error events with severity          |
+| Domain | Example Topic | Purpose |
+|---|---|---|
+| Device discovery | `manipylator/devices/{id}/about` | Capabilities, status, health |
+| Camera streams | `manipylator/streams/{camera_id}/info` | Stream endpoints, frames |
+| Analysis / Safety | `manipylator/safety/hand_guard` | Hand detection, e-stop events |
+| Robot control | `manipylator/control/commands` | Pause, resume, goto, e-stop |
+| Robot state | `manipylator/robots/{id}/state` | Joint angles + end-effector pose |
+| Sensors | `manipylator/sensors/{id}/distance` | Distance measurements |
+| System | `manipylator/system/discovery` | Device roster, aggregate health |
 
 ---
 
@@ -523,7 +490,7 @@ ManiPylator/
     camera_entry.py         #   Container entrypoint for StreamingCamera service
     pipeline.py             #   HandDetector, PeriodicHandDetector, SafetyListener
     tasks.py                #   Huey tasks (detect_hands_latest, MediaPipe wrapper)
-    base.py                 #   Robot, SimulatedRobot, Visualizer, MQVisualizer
+    base.py                 #   Visualizer, MovementCommand, deprecated legacy Robot classes
     app.py                  #   Panel-based StateViewer UI
     utils.py                #   URDF rendering, trajectory helpers, quaternion math
   run_pipeline.py           # Launcher: Huey worker + pipeline + stream viewer

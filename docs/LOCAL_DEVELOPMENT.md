@@ -146,7 +146,7 @@ docker compose up -d
 xhost +local:root
 ```
 
-Go to [http://localhost:8888/lab/workspaces/auto-0/tree/generate-trajectory-example.ipynb](http://localhost:8888/lab/workspaces/auto-0/tree/generate-trajectory-example.ipynb) for a short intro. The notebook demonstrats loading a URDF, forward/inverse kinematics, and saving control signals as a csv.
+Go to [http://localhost:8888/lab/workspaces/auto-0/tree/generate-trajectory-example.ipynb](http://localhost:8888/lab/workspaces/auto-0/tree/generate-trajectory-example.ipynb) for a short intro. The notebook demonstrates loading a URDF, forward/inverse kinematics, and saving control signals as a csv.
 
 ## Project Structure
 

@@ -9,13 +9,13 @@ ManiPylator is a Python library that provides a unified interface to both analyt
 **Option A: Using Docker (Recommended)**
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/manipylator.git
-cd manipylator
+git clone https://github.com/leogolds/ManiPylator.git
+cd ManiPylator
 
 xhost +local:root # Allow the container to access the display
 
 # Start the Jupyter Lab environment
-docker compose up -d
+docker compose up lab -d
 
 # Open your browser to http://localhost:8888
 ```
@@ -51,8 +51,8 @@ examples (mocking devices, subscribing, Panel dashboard).
 pip install manipylator
 
 # Or install from source
-git clone https://github.com/your-username/manipylator.git
-cd manipylator
+git clone https://github.com/leogolds/ManiPylator.git
+cd ManiPylator
 pip install -e .
 ```
 
@@ -61,19 +61,19 @@ pip install -e .
 Open the `00-start-here.ipynb` notebook and run:
 
 ```python
-from manipylator import HeadlessSimulatedRobot
+from manipylator import HeadlessSimulatedRobotDevice
 from manipylator.utils import render_robot_from_template
 
 # Load a robot
 with render_robot_from_template("robots/empiric") as robot_urdf:
-    robot = HeadlessSimulatedRobot(robot_urdf)
+    robot = HeadlessSimulatedRobotDevice(robot_urdf)
 
-# Set joint angles
-pose = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    # Set joint angles (radians)
+    pose = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
 
-# Get end effector position
-translation, rotation = robot.step_to_pose(pose)
-print(f"End effector position: {translation}")
+    # Get end effector position
+    translation, rotation = robot.step_to_pose(pose)
+    print(f"End effector position: {translation}")
 ```
 
 ### 3. What You Can Do
@@ -95,6 +95,7 @@ print(f"End effector position: {translation}")
 - **Robotics Fundamentals**: Work through the symbolic manipulation notebooks (1X series)
 - **Control Theory**: Explore trajectory generation and differential kinematics
 - **Practical Implementation**: Try controlling real robots with MQTT
+- **Textbook Companion**: See the [chapter mapping](RESOURCES.md#textbook-chapter-mapping-corke-rvc-3rd-ed-python) for Corke's [*Robotics, Vision and Control*](https://link.springer.com/book/10.1007/978-3-031-06469-2)
 
 ### For Researchers
 - **Analytical Methods**: Use Robotics Toolbox for symbolic calculations
@@ -105,6 +106,30 @@ print(f"End effector position: {translation}")
 - **Hardware Control**: Check out the MQTT examples for real robot control
 - **Custom Movements**: Create your own movement sequences
 - **Video Recording**: Capture simulations for documentation
+
+### For Teachers
+- **Assignment ideas** and **lab configurations** for different classroom scenarios are in
+  [RESOURCES.md](RESOURCES.md#assignment-ideas-for-teachers)
+- The `minimal` Docker profile works without a GPU, covering Ch 2-8 of Corke's textbook
+
+## Concepts and Capabilities
+
+Quick-reference for what you can learn and practice in this project.
+
+| Robotics Concept | Notebooks | API / Code |
+|---|---|---|
+| Spatial mathematics (SE2, SE3, twists) | `external/spatialmathematics/` | `spatialmath` library |
+| Forward kinematics (DH parameters) | `1x-forward-kinematics*` | `robot.model.fkine()` |
+| Inverse kinematics (analytical + numerical) | `1x-inverse-kinematics*` | `robot.model.ikine_LM()` |
+| Jacobians and velocity kinematics | `external/dkt/Part 1/2..3` | `robot.model.jacob0()` |
+| Trajectory planning | `extra-notebooks/generate-trajectory-example` | `rtb.jtraj()`, `manipylator.utils` |
+| GPU physics simulation | `20-simulation`, `21-headless-simulation` | `SimulatedRobotDevice`, `HeadlessSimulatedRobotDevice` |
+| Physical robot control | `30-controlling-manny` | `PhysicalRobotDevice`, Klipper gcode |
+| Computer vision / safety | `run_pipeline.py` | `StreamingCamera`, `HandDetector` |
+| MQTT device communication | `extra-notebooks/comms-control` | `MQClient`, `MQTTConnection` |
+
+For the full table including Hessians, dynamics, motion control, and more, see
+[RESOURCES.md](RESOURCES.md#concepts-and-capabilities).
 
 ## Key Concepts
 
@@ -127,18 +152,22 @@ Robots are defined using URDF (Universal Robot Description Format) files:
 - **RTB**: Standard robotics conventions
 - **Genesis**: Right-handed coordinate system
 - **ManiPylator**: Consistent interface between both
+- **Joint angles**: Radians throughout (simulation and Klipper gcode)
 
 ## Common Tasks
 
 ### Loading Different Robots
 ```python
+from manipylator import SimulatedRobotDevice, HeadlessSimulatedRobotDevice
+from manipylator.utils import render_robot_from_template
+
 # Use built-in templates
 with render_robot_from_template("robots/empiric") as urdf:
-    robot = VisualRobot(urdf)
+    robot = SimulatedRobotDevice(urdf_path=urdf)
 
-# Load your own URDF
-from pathlib import Path
-robot = VisualRobot(Path("my_robot.urdf"))
+# Headless (no GUI, faster)
+with render_robot_from_template("robots/empiric") as urdf:
+    robot = HeadlessSimulatedRobotDevice(urdf_path=urdf)
 ```
 
 ### Getting Robot Information
@@ -150,19 +179,21 @@ print(robot.model)
 print(robot.model.q)
 
 # Get end effector position
-translation, rotation = robot.get_transformation_matrix()
+translation, rotation = robot.step_to_pose([0, 0, 0, 0, 0, 0])
 ```
 
 ### Running Simulations
 ```python
-# Visual simulation (with 3D viewer)
-robot = SimulatedRobot(urdf_path)
+# Visual simulation (with 3D viewer, requires X11)
+robot = SimulatedRobotDevice(urdf_path=urdf)
 
 # Headless simulation (faster, no GUI)
-robot = HeadlessSimulatedRobot(urdf_path)
+robot = HeadlessSimulatedRobotDevice(urdf_path=urdf)
 
 # Step to a new pose
 translation, rotation = robot.step_to_pose([0, 0, 0, 0, 0, 0])
 ```
 
 **Ready to start?** Open `00-start-here.ipynb` and run your first robot simulation!
+
+For detailed class signatures and usage patterns, see the [API Reference](API_REFERENCE.md).
