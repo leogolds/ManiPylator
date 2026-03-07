@@ -85,9 +85,11 @@ graph LR
     end
 
     subgraph compose_controller ["containers/controller/compose.yaml"]
-        subgraph profile_shared ["shared -- full and simulated"]
+        subgraph profile_minimal ["profile: minimal -- local dev"]
             MQ["mq -- Mosquitto MQTT<br/>ports 1883, 9001"]
             TQ["tq -- Redis<br/>port 6379"]
+        end
+        subgraph profile_shared ["shared -- full and simulated"]
             Mainsail["mainsail -- Web UI"]
             Traefik["traefik -- Reverse proxy<br/>port 80"]
         end
@@ -102,7 +104,7 @@ graph LR
         end
     end
 
-    Lab -- "include (profiles: full | simulated)" --> compose_controller
+    Lab -- "include (profiles: full | simulated | minimal)" --> compose_controller
     KlipperFull --> MQ
     MoonrakerFull --> MQ
     KlipperSim --> SimulavrSvc
@@ -113,12 +115,71 @@ graph LR
 
 | Profile      | What it starts                                                            |
 |--------------|---------------------------------------------------------------------------|
+| `minimal`    | MQTT broker (Mosquitto) and task queue (Redis) only -- for local development without the controller stack |
 | `full`       | Physical robot stack: Klipper, Moonraker, Mainsail, Traefik, MQTT, Redis |
 | `simulated`  | Firmware-simulated stack: Simulavr, Klipper-simulated, Moonraker-simulated, Mainsail, Traefik, MQTT, Redis |
 | `firmware`   | Klipper firmware build environment only                                   |
 
 The physical-vs-simulated robot distinction maps directly to these profiles.
 The `lab` container is always started and does not require a profile.
+
+#### Minimal Profile
+
+The `minimal` profile starts only the message broker and task queue, which is
+enough to develop and test any MQTT-based component locally without Klipper,
+Moonraker, or the rest of the controller stack:
+
+```bash
+docker compose --profile minimal up -d
+```
+
+With just `mq` and `tq` running you can:
+
+- **Run the MQVisualizer** to open a Genesis 3D window driven by MQTT state.
+  Genesis requires a GPU so this typically runs inside the lab container:
+
+  ```bash
+  # start the lab container alongside minimal
+  docker compose up lab -d && docker compose --profile minimal up -d
+
+  # run the visualizer via docker exec (use --broker mq for Docker DNS)
+  docker exec manipylator-lab python /workspace/run_mq_visualizer.py --broker mq
+
+  # or for headless mode (no GUI window)
+  docker exec manipylator-lab python /workspace/run_mq_visualizer.py --broker mq --headless
+  ```
+
+- **Push joint state manually** to drive the visualizer or any subscriber:
+
+  ```bash
+  mosquitto_pub -h localhost -t manipylator/state \
+    -m '{"q1": 0.1, "q2": 0.2, "q3": 0.3, "q4": 0.0, "q5": 0.0, "q6": 0.0}'
+  ```
+
+- **Run the Panel StateViewer** dashboard to inspect current/target angles:
+
+  ```bash
+  panel serve state_viewer.py
+  ```
+
+- **Mock device lifecycle messages** for integration testing (discovery, status, health):
+
+  ```bash
+  mosquitto_pub -h localhost -t manipylator/devices/mock-arm/about -r \
+    -m '{"message_schema": "manipylator/device/about/v1", "device_id": "mock-arm", "device_type": "robot", "capabilities": []}'
+  ```
+
+- **Develop Huey tasks** against the Redis backend without spinning up the full pipeline.
+
+- **Subscribe to all traffic** for debugging:
+
+  ```bash
+  mosquitto_sub -h localhost -t 'manipylator/#' -v
+  ```
+
+This profile is ideal for iterating on MQTT message schemas, UI components, or
+any code that consumes/produces MQTT messages without needing actual robot
+firmware.
 
 ---
 
