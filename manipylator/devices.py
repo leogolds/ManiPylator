@@ -848,14 +848,17 @@ class MQVisualizer(MQClient):
             super().handle_message(message, message_schema)
 
     def on_message(self, client, userdata, msg):
-        """Handle both new schema messages and legacy raw JSON."""
+        """Handle both Pydantic schema messages and Klipper raw JSON.
+
+        Klipper publishes raw {"q1": ..., "q2": ..., ...} to
+        manipylator/state (defined in state.cfg macros).  RobotDevice
+        publishes typed RobotStateV1 to manipylator/robots/{id}/state.
+        """
         try:
             data = json.loads(msg.payload)
-            # Try new schema first
             if "message_schema" in data:
                 super().on_message(client, userdata, msg)
                 return
-            # Legacy format: raw {"q1": ..., "q2": ..., ...}
             if "q1" in data:
                 dofs = [data[f"q{i}"] for i in range(1, 7)]
                 self.visualizer.robot.set_dofs_position(dofs)
