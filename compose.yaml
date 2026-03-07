@@ -13,6 +13,7 @@ services:
       - /dev/dri:/dev/dri
       - /tmp/.X11-unix/:/tmp/.X11-unix
       - .:/workspace
+      - genesis-cache:/root/.cache
     ports:
       - '8888:8888'
     restart: "no"
@@ -23,6 +24,9 @@ services:
             - driver: nvidia
               count: all
               capabilities: [ gpu ]
+
+volumes:
+  genesis-cache:
 
 # Include the controller compose file
 include:

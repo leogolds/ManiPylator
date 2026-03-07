@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import signal
+import sys
 import warnings
 from pathlib import Path
 from typing import Sequence
@@ -7,6 +9,11 @@ import roboticstoolbox as rtb
 
 from .comms import MQTTConnection
 from .utils import quaternion_to_rotation_matrix
+
+
+def _genesis_sigterm_handler(signum, frame):
+    """Convert SIGTERM to a clean exit so Taichi flushes its kernel cache."""
+    sys.exit(0)
 
 
 @dataclass(frozen=True)
@@ -60,6 +67,7 @@ class Visualizer:
         if not Visualizer.genesis_initiated:
             gs.init(backend=gs.gpu)
             Visualizer.genesis_initiated = True
+            signal.signal(signal.SIGTERM, _genesis_sigterm_handler)
 
         try:
             self.morph = gs.morphs.URDF(
