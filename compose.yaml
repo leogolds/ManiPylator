@@ -34,3 +34,4 @@ include:
     profiles:
       - full
       - simulated
+      - minimal
