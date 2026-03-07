@@ -11,15 +11,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Callable, Union, TYPE_CHECKING
 
-import cv2
 import numpy as np
 import paho.mqtt.client as mqtt
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import Response
 from pydantic import ValidationError
-from vidgear.gears.asyncio import WebGear_RTC, WebGear
-from vidgear.gears.camgear import CamGear
 
 from .schemas import (
     AnyMessage, ControlCmdV1, ControlType, DeviceAboutV1, DeviceStatusV1,
@@ -49,6 +43,10 @@ class StreamingCamera(MQClient):
         device_owner: str = "camera_user",
         belongs_to: Optional[str] = None,
     ):
+        # Lazy imports: camera deps only loaded when StreamingCamera is used
+        from fastapi import FastAPI, HTTPException
+        from fastapi.responses import Response
+
         # Initialize MQClient with camera-specific settings
         super().__init__(
             client_id=f"camera_{camera_id}",
@@ -122,6 +120,8 @@ class StreamingCamera(MQClient):
         lru_cache(maxsize=1) keeps exactly the latest encoding.  When
         frame_id advances the stale entry is evicted automatically.
         """
+        import cv2
+
         if not self.latest_frame:
             return None
         success, encoded = cv2.imencode(".jpg", self.latest_frame[-1])
@@ -241,6 +241,9 @@ class StreamingCamera(MQClient):
 
     def _initialize_camera(self):
         """Initialize camera and WebGear components."""
+        from vidgear.gears.asyncio import WebGear
+        from vidgear.gears.camgear import CamGear
+
         try:
             # Initialize CamGear
             self.camgear = CamGear(source=self.source, logging=False).start()
@@ -532,6 +535,8 @@ class StreamingCamera(MQClient):
 
     def run(self):
         """Run the camera client with WebGear streaming and FastAPI REST API."""
+        import uvicorn
+
         try:
             self._setup_mq()
 
