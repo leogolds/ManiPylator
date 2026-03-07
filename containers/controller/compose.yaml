@@ -154,6 +154,7 @@ services:
     profiles:
       - full
       - simulated
+      - minimal
     ports:
       - "1883:1883"
       - "9001:9001"
@@ -168,6 +169,7 @@ services:
     profiles:
       - full
       - simulated
+      - minimal
     ports:
       - "6379:6379"
     # volumes:

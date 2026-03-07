@@ -20,7 +20,32 @@ docker compose up -d
 # Open your browser to http://localhost:8888
 ```
 
-**Option B: Local Installation**
+**Option B: Minimal (local development)**
+
+If you only need the MQTT broker and task queue -- for example to work on the
+visualizer, state viewer, or any MQTT-driven component -- use the `minimal`
+profile.  This skips Klipper, Moonraker, and firmware simulation entirely:
+
+```bash
+docker compose up lab -d && docker compose --profile minimal up -d
+# Starts: lab (Jupyter, GPU), Mosquitto (port 1883), Redis (port 6379)
+```
+
+You can then run the visualizer inside the lab container and push mock state
+to drive it:
+
+```bash
+docker exec manipylator-lab python /workspace/run_mq_visualizer.py --broker mq
+
+# from another terminal, publish joint state
+mosquitto_pub -h localhost -t manipylator/state \
+  -m '{"q1": 0.5, "q2": 0.3, "q3": 0.0, "q4": 0.0, "q5": 0.0, "q6": 0.0}'
+```
+
+See the [Architecture docs](ARCHITECTURE.md#minimal-profile) for more
+examples (mocking devices, subscribing, Panel dashboard).
+
+**Option C: Local Installation**
 ```bash
 # Install dependencies
 pip install manipylator

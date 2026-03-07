@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timezone
 from functools import cache
 from time import sleep
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
@@ -14,6 +14,7 @@ from .schemas import (
     DeviceStatusV1,
     DeviceType,
     DeviceCapability,
+    FastAPIEndpointInfo,
     StateStr,
     AnyMessage,
 )
@@ -74,7 +75,7 @@ class MQClient:
         device_vendor: str = "Demo Corp",
         device_model: str = "DemoDevice-1000",
         device_capabilities: List[DeviceCapability] = None,
-        device_endpoints: Dict[str, str] = None,
+        device_endpoints: Dict[str, Union[str, FastAPIEndpointInfo]] = None,
         device_owner: str = "demo_user",
         belongs_to: Optional[str] = None,
         child_devices: Optional[List[str]] = None,
