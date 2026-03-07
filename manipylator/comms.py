@@ -7,7 +7,6 @@ from typing import Callable, Dict, List, Optional, Union
 
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
-from vidgear.gears import NetGear
 
 from .schemas import (
     DeviceAboutV1,
