@@ -9,21 +9,33 @@ from functools import lru_cache
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List, Dict, Callable, Union, TYPE_CHECKING
+from typing import Optional, List, Dict, Callable, Union, Sequence, TYPE_CHECKING
 
 import numpy as np
 import paho.mqtt.client as mqtt
 from pydantic import ValidationError
 
 from .schemas import (
-    AnyMessage, ControlCmdV1, ControlType, DeviceAboutV1, DeviceStatusV1,
-    DeviceType, DeviceCapability, RobotStateV1, StateStr, StreamInfoV1,
-    StreamStatusV1, FrameSnapshotV1, ConnectionInfo, FastAPIEndpointInfo, Encoding,
+    AnyMessage,
+    ControlCmdV1,
+    ControlType,
+    DeviceAboutV1,
+    DeviceStatusV1,
+    DeviceType,
+    DeviceCapability,
+    RobotStateV1,
+    StateStr,
+    StreamInfoV1,
+    StreamStatusV1,
+    FrameSnapshotV1,
+    ConnectionInfo,
+    FastAPIEndpointInfo,
+    Encoding,
 )
 from .comms import MQClient
 
 if TYPE_CHECKING:
-    from .base import MovementSequence
+    from .base import MovementSequence, World
 
 
 class StreamingCamera(MQClient):
@@ -44,8 +56,7 @@ class StreamingCamera(MQClient):
         belongs_to: Optional[str] = None,
     ):
         # Lazy imports: camera deps only loaded when StreamingCamera is used
-        from fastapi import FastAPI, HTTPException
-        from fastapi.responses import Response
+        from fastapi import FastAPI
 
         # Initialize MQClient with camera-specific settings
         super().__init__(
@@ -189,6 +200,10 @@ class StreamingCamera(MQClient):
         @self.fastapi_app.get("/latest")
         async def get_latest_frame():
             """Get the latest frame as JPEG with metadata in response body."""
+            # Imports here so names are bound inside this closure (see nested-handler scoping).
+            from fastapi import HTTPException
+            from fastapi.responses import Response
+
             result = self._get_jpeg()
             if result is None:
                 raise HTTPException(status_code=404, detail="No frame available")
@@ -318,9 +333,7 @@ class StreamingCamera(MQClient):
             try:
                 _, jpeg_bytes, _ = result
                 yield (
-                    b"--frame\r\nContent-Type:image/jpeg\r\n\r\n"
-                    + jpeg_bytes
-                    + b"\r\n"
+                    b"--frame\r\nContent-Type:image/jpeg\r\n\r\n" + jpeg_bytes + b"\r\n"
                 )
                 await asyncio.sleep(0.02)
 
@@ -435,7 +448,10 @@ class StreamingCamera(MQClient):
             ),
         )
 
-        self.publish(stream_status.topic, stream_status)
+        # retain=True so new subscribers see the last known state and so "online"
+        # replaces a retained LWT/offline from a previous crash (non-retained
+        # publishes do not clear the broker's retained message on this topic).
+        self.publish(stream_status.topic, stream_status, retain=True)
         self.log(f"Published stream status ({state}) to {stream_status.topic}")
 
     def _setup_camera(self):
@@ -640,7 +656,7 @@ class RobotDevice(MQClient):
         self.robot_id = robot_id
         self.source = source
         self.urdf_path = urdf_path
-        self.model = rtb.Robot.URDF(urdf_path.absolute())
+        self.symbolic_model = rtb.Robot.URDF(urdf_path.absolute())
 
     def handle_message(self, message: AnyMessage, message_schema: str):
         """Dispatch incoming control commands."""
@@ -670,14 +686,19 @@ class RobotDevice(MQClient):
         for command in seq.movements:
             cmd = ControlCmdV1(
                 type=ControlType.goto,
-                target_pose=list(command.q),
+                target_pose=list[float](command.q),
                 source=self.robot_id,
             )
             self.publish(cmd.topic, cmd)
 
 
 class SimulatedRobotDevice(RobotDevice):
-    """Simulated robot with a Genesis visualizer scene."""
+    """Simulated robot with a Genesis visualizer scene.
+
+    ``headless`` only controls whether a viewer window is shown. ``kinematic_physics``
+    selects ``KinematicSimulator`` (zero gravity, constraints off) vs full-physics
+    ``PhysicsSimulator``; the two flags are independent.
+    """
 
     def __init__(
         self,
@@ -685,9 +706,12 @@ class SimulatedRobotDevice(RobotDevice):
         robot_id: str = "sim-robot-1",
         broker_host: str = "localhost",
         headless: bool = False,
+        kinematic_physics: bool = False,
+        world: "Optional[World]" = None,
+        include_ground_plane: bool = True,
         **kwargs,
     ):
-        from .base import Visualizer
+        from .base import KinematicSimulator, PhysicsSimulator
 
         super().__init__(
             urdf_path=urdf_path,
@@ -696,7 +720,13 @@ class SimulatedRobotDevice(RobotDevice):
             source="headless" if headless else "simulated",
             **kwargs,
         )
-        self.visualizer = Visualizer(urdf_path, headless=headless)
+        sim_cls = KinematicSimulator if kinematic_physics else PhysicsSimulator
+        self.simulator = sim_cls(
+            urdf_path,
+            headless=headless,
+            world=world,
+            include_ground_plane=include_ground_plane,
+        )
 
     def _execute_command(self, cmd: ControlCmdV1):
         """Execute movement in the simulator and publish state."""
@@ -722,10 +752,10 @@ class SimulatedRobotDevice(RobotDevice):
         """
         from .utils import quaternion_to_rotation_matrix
 
-        self.visualizer.robot.set_dofs_position(pose)
-        self.visualizer.scene.step()
+        self.simulator.robot.set_dofs_position(pose)
+        self.simulator.scene.step()
 
-        link = self.visualizer.robot.get_link(link_name)
+        link = self.simulator.robot.get_link(link_name)
         position = link.get_pos()
         quat = link.get_quat()
 
@@ -745,7 +775,7 @@ class SimulatedRobotDevice(RobotDevice):
         """
         from .utils import quaternion_to_rotation_matrix
 
-        link = self.visualizer.robot.get_link(link_name)
+        link = self.simulator.robot.get_link(link_name)
         position = link.get_pos()
         quat = link.get_quat()
         rotation_matrix = quaternion_to_rotation_matrix(quat)
@@ -761,7 +791,9 @@ class HeadlessSimulatedRobotDevice(SimulatedRobotDevice):
     """Simulated robot running headless (no viewer window)."""
 
     def __init__(self, urdf_path: Path, robot_id: str = "headless-robot-1", **kwargs):
-        super().__init__(urdf_path=urdf_path, robot_id=robot_id, headless=True, **kwargs)
+        super().__init__(
+            urdf_path=urdf_path, robot_id=robot_id, headless=True, **kwargs
+        )
 
 
 class PhysicalRobotDevice(RobotDevice):
@@ -816,7 +848,12 @@ class PhysicalRobotDevice(RobotDevice):
 
 
 class MQVisualizer(MQClient):
-    """MQTT consumer that drives a Genesis visualizer from RobotStateV1 messages."""
+    """MQTT consumer that drives a Genesis visualizer from RobotStateV1 messages.
+
+    ``headless`` and ``kinematic_physics`` are independent: either may be true without the
+    other. Use ``kinematic_physics=True`` so ``scene.step()`` does not pull joints off the
+    commanded configuration (e.g. pose-accurate offscreen rendering).
+    """
 
     def __init__(
         self,
@@ -824,9 +861,10 @@ class MQVisualizer(MQClient):
         device_id: str = "mq-visualizer-1",
         broker_host: str = "localhost",
         headless: bool = False,
+        kinematic_physics: bool = False,
         **kwargs,
     ):
-        from .base import Visualizer
+        from .base import KinematicSimulator, PhysicsSimulator
 
         super().__init__(
             client_id=device_id,
@@ -842,7 +880,8 @@ class MQVisualizer(MQClient):
             ],
             **kwargs,
         )
-        self.visualizer = Visualizer(urdf_path, headless=headless)
+        sim_cls = KinematicSimulator if kinematic_physics else PhysicsSimulator
+        self.visualizer = sim_cls(urdf_path, headless=headless)
 
     def handle_message(self, message: AnyMessage, message_schema: str):
         """Update the visualizer when a RobotStateV1 arrives."""

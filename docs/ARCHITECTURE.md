@@ -207,19 +207,19 @@ classDiagram
     }
 
     class RobotDevice {
-        +model : rtb.Robot
+        +symbolic_model : rtb.Robot
         +mq : MQTTConnection
         +send_control_sequence(seq)
     }
 
-    class Visualizer {
+    class Simulator {
         +scene
         +robot
         +camera
     }
 
     class SimulatedRobotDevice {
-        +visualizer : Visualizer
+        +simulator : Simulator
         +step_to_pose(pose)
         +homogeneous_transform()
     }
@@ -227,14 +227,15 @@ classDiagram
     class HeadlessSimulatedRobotDevice
 
     class MQVisualizer {
+        +visualizer : Simulator
         +mq : MQTTConnection
         +on_message() -- drives Genesis from MQTT
     }
 
     RobotDevice <|-- SimulatedRobotDevice
     SimulatedRobotDevice <|-- HeadlessSimulatedRobotDevice
-    Visualizer <|-- MQVisualizer
-    SimulatedRobotDevice --> Visualizer : has
+    SimulatedRobotDevice --> Simulator : simulator
+    MQVisualizer --> Simulator : visualizer
     RobotDevice --> MovementCommand : uses
     MovementSequence --> MovementCommand : contains
 ```
@@ -310,7 +311,7 @@ graph TD
         Tasks["tasks.py<br/>Huey RedisHuey tasks<br/>detect_hands_latest<br/>OpenCVClient, MediaPipe"]
         App["app.py<br/>Panel StateViewer UI"]
         Utils["utils.py<br/>URDF rendering<br/>trajectory helpers<br/>quaternion math"]
-        Base["base.py<br/>Visualizer, MovementCommand<br/>(legacy Robot classes -- deprecated)"]
+        Base["base.py<br/>Simulator, MovementCommand<br/>(legacy Robot classes -- deprecated)"]
     end
 
     Comms --> Schemas
@@ -490,7 +491,7 @@ ManiPylator/
     camera_entry.py         #   Container entrypoint for StreamingCamera service
     pipeline.py             #   HandDetector, PeriodicHandDetector, SafetyListener
     tasks.py                #   Huey tasks (detect_hands_latest, MediaPipe wrapper)
-    base.py                 #   Visualizer, MovementCommand, deprecated legacy Robot classes
+    base.py                 #   Simulator, KinematicSimulator, PhysicsSimulator, World, MovementCommand, deprecated legacy Robot classes
     app.py                  #   Panel-based StateViewer UI
     utils.py                #   URDF rendering, trajectory helpers, quaternion math
   run_pipeline.py           # Launcher: Huey worker + pipeline + stream viewer

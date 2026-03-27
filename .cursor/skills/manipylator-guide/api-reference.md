@@ -21,7 +21,7 @@ with render_robot_from_template("robots/empiric") as urdf:
 ```
 
 Key attributes:
-- `robot.model` -- `rtb.Robot` instance for analytical kinematics (FK, IK, Jacobians)
+- `robot.symbolic_model` -- `rtb.Robot` instance for analytical kinematics (FK, IK, Jacobians)
 - `robot.mq` -- `MQTTConnection` for gcode/MQTT communication
 - `robot.urdf_path` -- resolved Path to the URDF file
 
@@ -29,7 +29,7 @@ Inherited from `MQClient`: `start()`, `stop()`, `publish()`, `subscribe()`, `log
 
 ### SimulatedRobotDevice(RobotDevice)
 
-Adds a Genesis `Visualizer` scene with a GUI window.
+Adds a Genesis simulation scene (see `KinematicSimulator` vs `PhysicsSimulator` in `base.py`). Constructor options include `kinematic_physics`, optional `World` (obstacle morphs), and `include_ground_plane`. `headless` only toggles the viewer window.
 
 ```python
 from manipylator import SimulatedRobotDevice
@@ -39,6 +39,8 @@ robot = SimulatedRobotDevice(
     robot_id="sim-robot-1",
     broker_host="localhost",
     headless=False,           # True for no GUI window
+    kinematic_physics=False,  # True -> KinematicSimulator (pose-stable stepping)
+    include_ground_plane=True,
 )
 
 # Step to joint config and get end-effector transform
@@ -51,9 +53,9 @@ translation, rotation = robot.step_to_pose([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
 T = robot.homogeneous_transform()
 
 # Access Genesis objects directly
-robot.visualizer.scene    # gs.Scene
-robot.visualizer.robot    # gs entity (set_dofs_position, get_link, etc.)
-robot.visualizer.camera   # gs camera (render, get_color_image, etc.)
+robot.simulator.scene    # gs.Scene
+robot.simulator.robot    # gs entity (set_dofs_position, get_link, etc.)
+robot.simulator.camera   # gs camera (render, get_color_image, etc.)
 ```
 
 ### HeadlessSimulatedRobotDevice(SimulatedRobotDevice)
@@ -95,9 +97,12 @@ viz = MQVisualizer(
     device_id="mq-visualizer-1",
     broker_host="localhost",
     headless=False,
+    kinematic_physics=False,  # True for pose-accurate stepping (e.g. headless render)
 )
 viz.start()  # blocks, listens for state messages and updates Genesis
 ```
+
+`MQVisualizer` still exposes the Genesis scene on `viz.visualizer` (a `KinematicSimulator` or `PhysicsSimulator` instance).
 
 ### StreamingCamera(MQClient)
 
@@ -241,19 +246,19 @@ model = parse_payload(raw_bytes)  # returns typed Pydantic model
 
 ## Robotics Toolbox Integration
 
-The `robot.model` attribute on any `RobotDevice` is a standard `rtb.Robot`:
+The `robot.symbolic_model` attribute on any `RobotDevice` is a standard `rtb.Robot`:
 
 ```python
 import numpy as np
 
 # Forward kinematics
-T = robot.model.fkine(robot.model.q)
+T = robot.symbolic_model.fkine(robot.symbolic_model.q)
 
 # Jacobian
-J = robot.model.jacob0(robot.model.q)
+J = robot.symbolic_model.jacob0(robot.symbolic_model.q)
 
 # Inverse kinematics
-q_solution = robot.model.ikine_LM(T)
+q_solution = robot.symbolic_model.ikine_LM(T)
 
 # Trajectory
 traj = rtb.jtraj(q_start, q_end, 50)

@@ -31,6 +31,8 @@ docker compose up lab -d && docker compose --profile minimal up -d
 # Starts: lab (Jupyter, GPU), Mosquitto (port 1883), Redis (port 6379)
 ```
 
+If Compose reports **address already in use** on one of those ports, something on the host is already listening there. See [FAQ: Address already in use when starting Docker services](FAQ.md#address-already-in-use-when-starting-docker-services) for how to find the PID and free the port.
+
 You can then run the visualizer inside the lab container and push mock state
 to drive it:
 
@@ -119,9 +121,9 @@ Quick-reference for what you can learn and practice in this project.
 | Robotics Concept | Notebooks | API / Code |
 |---|---|---|
 | Spatial mathematics (SE2, SE3, twists) | `external/spatialmathematics/` | `spatialmath` library |
-| Forward kinematics (DH parameters) | `1x-forward-kinematics*` | `robot.model.fkine()` |
-| Inverse kinematics (analytical + numerical) | `1x-inverse-kinematics*` | `robot.model.ikine_LM()` |
-| Jacobians and velocity kinematics | `external/dkt/Part 1/2..3` | `robot.model.jacob0()` |
+| Forward kinematics (DH parameters) | `1x-forward-kinematics*` | `robot.symbolic_model.fkine()` |
+| Inverse kinematics (analytical + numerical) | `1x-inverse-kinematics*` | `robot.symbolic_model.ikine_LM()` |
+| Jacobians and velocity kinematics | `external/dkt/Part 1/2..3` | `robot.symbolic_model.jacob0()` |
 | Trajectory planning | `extra-notebooks/generate-trajectory-example` | `rtb.jtraj()`, `manipylator.utils` |
 | GPU physics simulation | `20-simulation`, `21-headless-simulation` | `SimulatedRobotDevice`, `HeadlessSimulatedRobotDevice` |
 | Physical robot control | `30-controlling-manny` | `PhysicalRobotDevice`, Klipper gcode |
@@ -173,10 +175,10 @@ with render_robot_from_template("robots/empiric") as urdf:
 ### Getting Robot Information
 ```python
 # View robot structure
-print(robot.model)
+print(robot.symbolic_model)
 
 # Get current joint angles
-print(robot.model.q)
+print(robot.symbolic_model.q)
 
 # Get end effector position
 translation, rotation = robot.step_to_pose([0, 0, 0, 0, 0, 0])

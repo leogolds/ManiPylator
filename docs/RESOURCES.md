@@ -46,10 +46,10 @@ Quick-reference table mapping robotics concepts to project notebooks and API.
 | Robotics Concept | Notebooks | API / Code |
 |---|---|---|
 | Spatial mathematics (SE2, SE3, twists) | `external/spatialmathematics/` | `spatialmath` library |
-| Forward kinematics (DH parameters) | `1x-forward-kinematics*` | `robot.model.fkine()` |
-| Inverse kinematics (analytical + numerical) | `1x-inverse-kinematics*` | `robot.model.ikine_LM()` |
-| Jacobians and velocity kinematics | `external/dkt/Part 1/2..3` | `robot.model.jacob0()` |
-| Hessians and higher-order derivatives | `external/dkt/Part 2/1..2` | `robot.model.hessian0()` |
+| Forward kinematics (DH parameters) | `1x-forward-kinematics*` | `robot.symbolic_model.fkine()` |
+| Inverse kinematics (analytical + numerical) | `1x-inverse-kinematics*` | `robot.symbolic_model.ikine_LM()` |
+| Jacobians and velocity kinematics | `external/dkt/Part 1/2..3` | `robot.symbolic_model.jacob0()` |
+| Hessians and higher-order derivatives | `external/dkt/Part 2/1..2` | `robot.symbolic_model.hessian0()` |
 | Trajectory planning | `extra-notebooks/generate-trajectory-example` | `manipylator.utils` parametric curves, `rtb.jtraj()` |
 | Motion control (resolved-rate, QP, null-space) | `external/dkt/Part 1/3`, `Part 2/4..7` | RTB controllers |
 | Symbolic manipulation | `10-symbolic-manipulation` | SymPy |
@@ -88,18 +88,18 @@ notebook covers graph-based planning concepts from Ch 5.
 
 | Chapter | Topic | Coverage | ManiPylator Resources |
 |---|---|---|---|
-| Ch 7.1 | Pose graphs, DH parameters, ETS, URDF | Full | `1x-forward-kinematics*.ipynb`, `10-symbolic-manipulation.ipynb`, `robot.model.fkine()`, URDF templates in `robots/` |
+| Ch 7.1 | Pose graphs, DH parameters, ETS, URDF | Full | `1x-forward-kinematics*.ipynb`, `10-symbolic-manipulation.ipynb`, `robot.symbolic_model.fkine()`, URDF templates in `robots/` |
 | Ch 7.1.4 | Unified Robot Description Format | Full | `robots/empiric/robot.urdf.j2`, `robots/vanilla/robot.urdf.j2`, `render_robot_from_template()` |
 | Ch 7.1.5 | DH convention, link transforms | Full | `1x-forward-kinematics*.ipynb`, `10-symbolic-manipulation.ipynb` (SymPy DH derivation) |
-| Ch 7.2 | Analytical (2D/3D), numerical IK, redundancy | Full | `1x-inverse-kinematics*.ipynb`, `robot.model.ikine_LM()`, `external/dkt/Part 1/4 Numerical Inverse Kinematics` |
+| Ch 7.2 | Analytical (2D/3D), numerical IK, redundancy | Full | `1x-inverse-kinematics*.ipynb`, `robot.symbolic_model.ikine_LM()`, `external/dkt/Part 1/4 Numerical Inverse Kinematics` |
 | Ch 7.3 | Joint-space, Cartesian, singularity traversal | Full | `extra-notebooks/generate-trajectory-example`, `extra-notebooks/control-move-in-heart-shape`, `rtb.jtraj()` |
 | Ch 7.4 | Cartesian path following | Full | `extra-notebooks/control-move-in-heart-shape` (parametric heart trajectory on the Empiric arm) |
-| Ch 8.1 | World-frame, end-effector-frame, analytical Jacobian | Full | `external/dkt/Part 1/2 The Manipulator Jacobian`, `robot.model.jacob0()`, `robot.model.jacobe()` |
+| Ch 8.1 | World-frame, end-effector-frame, analytical Jacobian | Full | `external/dkt/Part 1/2 The Manipulator Jacobian`, `robot.symbolic_model.jacob0()`, `robot.symbolic_model.jacobe()` |
 | Ch 8.2 | Velocity-based Cartesian control | Full | `external/dkt/Part 1/3 Resolved-Rate Motion Control` |
 | Ch 8.3 | Singularities, velocity ellipsoid, manipulability index | Full | `external/dkt/Part 1/5 Manipulator Performance Measures` |
-| Ch 8.4 | Wrench mapping, force ellipsoids | Partial | `robot.model.jacob0()` (transpose for force mapping), no dedicated notebook |
+| Ch 8.4 | Wrench mapping, force ellipsoids | Partial | `robot.symbolic_model.jacob0()` (transpose for force mapping), no dedicated notebook |
 | Ch 8.5 | Jacobian-based IK, Levenberg-Marquardt | Full | `external/dkt/Part 1/4 Numerical Inverse Kinematics`, `external/dkt/Part 2/6 Advanced Numerical Inverse Kinematics` |
-| Ch 9 | Equations of motion, gravity, inertia, Coriolis | Partial | `robot.model.gravload()`, `robot.model.inertia()`, `robot.model.coriolis()` -- API available but no dedicated notebook |
+| Ch 9 | Equations of motion, gravity, inertia, Coriolis | Partial | `robot.symbolic_model.gravload()`, `robot.symbolic_model.inertia()`, `robot.symbolic_model.coriolis()` -- API available but no dedicated notebook |
 | Ch 9.4-9.5 | Feedforward, computed-torque, operational space | Partial | `external/dkt/Part 2/4 Null-Space Projection`, `external/dkt/Part 2/5 Quadratic Programming` |
 
 ### Part IV: Computer Vision (Chapters 10-14)
@@ -158,14 +158,14 @@ notebooks and API.
 | Ch 2 | Pose composition | Create two SE3 transforms, compose them in different orders, and verify that SE3 multiplication is non-commutative. Use `spatialmath` in `external/spatialmathematics/1`. |
 | Ch 2.3 | Quaternion conversion | Convert a rotation matrix to a quaternion using `manipylator.utils.quaternion_to_rotation_matrix()` and verify the round-trip. Compare against `spatialmath.UnitQuaternion`. |
 | Ch 3 | Trajectory smoothness | Generate joint trajectories with `rtb.jtraj(q_start, q_end, N)` for different values of N. Plot joint velocity and acceleration profiles and observe the quintic polynomial smoothness. |
-| Ch 7.1 | Forward kinematics | Set different joint angles in `HeadlessSimulatedRobotDevice.step_to_pose()` and observe how the end-effector position changes. Compare the simulation result against `robot.model.fkine()`. |
+| Ch 7.1 | Forward kinematics | Set different joint angles in `HeadlessSimulatedRobotDevice.step_to_pose()` and observe how the end-effector position changes. Compare the simulation result against `robot.symbolic_model.fkine()`. |
 | Ch 7.1.5 | DH parameters | Derive the DH table for a 3-link planar arm in SymPy (see `10-symbolic-manipulation.ipynb`), then build the same robot with RTB and compare `fkine()` outputs. |
-| Ch 7.2 | Inverse kinematics | Pick a target end-effector position, solve with `robot.model.ikine_LM()`, then verify the solution produces the expected pose in Genesis simulation. Try different initial guesses to find multiple solutions. |
+| Ch 7.2 | Inverse kinematics | Pick a target end-effector position, solve with `robot.symbolic_model.ikine_LM()`, then verify the solution produces the expected pose in Genesis simulation. Try different initial guesses to find multiple solutions. |
 | Ch 7.3 | Cartesian trajectory | Use `manipylator.utils.parametric_heart_1(t)` to generate a heart-shaped Cartesian path, solve IK at each point, and step through the resulting joint trajectory in simulation. |
-| Ch 8.1 | Jacobian | Compute `robot.model.jacob0(q)` at several configurations. Find a near-singular configuration where `det(J)` approaches zero and observe how commanded Cartesian velocities map to large joint velocities. |
+| Ch 8.1 | Jacobian | Compute `robot.symbolic_model.jacob0(q)` at several configurations. Find a near-singular configuration where `det(J)` approaches zero and observe how commanded Cartesian velocities map to large joint velocities. |
 | Ch 8.2 | Resolved-rate control | Work through `external/dkt/Part 1/3 Resolved-Rate Motion Control` and then try the same control law on the Empiric arm model. Observe behavior near singularities. |
-| Ch 8.3 | Manipulability | Compute `robot.model.manipulability(q)` along a trajectory and plot it. Identify where the robot is most and least dexterous. |
-| Ch 9 | Dynamics | Compute `robot.model.gravload(q)` at different configurations and observe which joints bear the most gravity torque. Relate this to the arm's geometry. |
+| Ch 8.3 | Manipulability | Compute `robot.symbolic_model.manipulability(q)` along a trajectory and plot it. Identify where the robot is most and least dexterous. |
+| Ch 9 | Dynamics | Compute `robot.symbolic_model.gravload(q)` at different configurations and observe which joints bear the most gravity torque. Relate this to the arm's geometry. |
 | Ch 11 | Image acquisition | Use `StreamingCamera` to capture frames, then apply OpenCV filters (Gaussian blur, Canny edge detection) to a live MJPEG stream. |
 | Ch 15 | Visual servoing concept | Sketch a visual servoing loop: `StreamingCamera` provides images, detect a target with OpenCV, compute the image error, map it through the image Jacobian, and send velocity commands to the robot via MQTT. (Advanced -- requires custom code.) |
 
@@ -207,7 +207,7 @@ Different classroom and lab scenarios require different levels of infrastructure
 
 ### Introductory (no GPU needed, Ch 2-3, Ch 7.1-7.2)
 
-1. **FK verification** (Ch 7.1.5): Students derive the forward kinematics for a 3-joint planar arm using DH parameters on paper, then implement it in SymPy (see `10-symbolic-manipulation.ipynb`). They verify their result against `robot.model.fkine()` from RTB.
+1. **FK verification** (Ch 7.1.5): Students derive the forward kinematics for a 3-joint planar arm using DH parameters on paper, then implement it in SymPy (see `10-symbolic-manipulation.ipynb`). They verify their result against `robot.symbolic_model.fkine()` from RTB.
 2. **Workspace exploration** (Ch 7.1): Using RTB, students sample random joint configurations, compute FK for each, and plot the reachable workspace of the Empiric arm. Discuss how joint limits affect the workspace.
 3. **Spatial math exercises** (Ch 2): Work through `external/spatialmathematics/0..2`. Students compose rotations and translations, verify SE3 properties, and convert between representations (Euler angles, quaternions, rotation matrices).
 4. **Trajectory design** (Ch 3, Ch 7.3): Students generate smooth joint-space trajectories with `rtb.jtraj()` and Cartesian trajectories with `rtb.ctraj()`. Plot position, velocity, and acceleration profiles. Discuss the quintic polynomial and why it ensures smooth motion.

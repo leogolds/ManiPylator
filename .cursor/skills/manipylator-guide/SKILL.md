@@ -130,12 +130,13 @@ with render_robot_from_template("robots/empiric") as urdf:
 
 For a visual window, use `SimulatedRobotDevice` instead (requires X11 forwarding).
 
-#### Genesis Internals (Visualizer class in base.py)
+#### Genesis Internals (`Simulator` in `base.py`)
 
-The `Visualizer` class wraps Genesis scene setup:
+`Simulator` and its subclasses `KinematicSimulator` and `PhysicsSimulator` wrap Genesis scene setup:
 - Initializes `gs.init(backend=gs.gpu)` once (class-level flag)
+- Optional `World` supplies obstacle morphs (built lazily after `gs.init()`)
 - Loads URDF via `gs.morphs.URDF(file=..., fixed=True)`
-- Creates scene with viewer, camera, and ground plane
+- Creates scene with viewer, camera, and optional ground plane
 - `robot.set_dofs_position(pose)` + `scene.step()` drives simulation
 
 #### Genesis Caching
@@ -198,7 +199,7 @@ Subscribes to `manipylator/robots/+/state` and `manipylator/state`, supports bot
 ```
 manipylator/           # Core Python library
   __init__.py          #   Public API exports
-  base.py              #   Visualizer, MovementCommand, deprecated Robot classes
+  base.py              #   Simulator, KinematicSimulator, PhysicsSimulator, World, MovementCommand, deprecated Robot classes
   devices.py           #   RobotDevice, SimulatedRobotDevice, StreamingCamera, MQVisualizer
   comms.py             #   MQTTConnection, MQClient base class
   schemas.py           #   Pydantic message types, SCHEMA_TO_MODEL registry
@@ -256,10 +257,10 @@ Use the `minimal` Docker profile (`docker compose --profile minimal up -d`). All
 | Robotics Concept | Notebooks | API / Code |
 |---|---|---|
 | Spatial mathematics (SE2, SE3, twists) | `external/spatialmathematics/` | `spatialmath` library |
-| Forward kinematics (DH parameters) | `1x-forward-kinematics*` | `robot.model.fkine()` |
-| Inverse kinematics (analytical + numerical) | `1x-inverse-kinematics*` | `robot.model.ikine_LM()` |
-| Jacobians and velocity kinematics | `external/dkt/Part 1/2..3` | `robot.model.jacob0()` |
-| Hessians and higher-order derivatives | `external/dkt/Part 2/1..2` | `robot.model.hessian0()` |
+| Forward kinematics (DH parameters) | `1x-forward-kinematics*` | `robot.symbolic_model.fkine()` |
+| Inverse kinematics (analytical + numerical) | `1x-inverse-kinematics*` | `robot.symbolic_model.ikine_LM()` |
+| Jacobians and velocity kinematics | `external/dkt/Part 1/2..3` | `robot.symbolic_model.jacob0()` |
+| Hessians and higher-order derivatives | `external/dkt/Part 2/1..2` | `robot.symbolic_model.hessian0()` |
 | Trajectory planning | `extra-notebooks/generate-trajectory-example` | `manipylator.utils` parametric curves, `rtb.jtraj()` |
 | Motion control (resolved-rate, QP, null-space) | `external/dkt/Part 1/3`, `Part 2/4..7` | RTB controllers |
 | Symbolic manipulation | `10-symbolic-manipulation` | SymPy |
@@ -300,7 +301,7 @@ Adapt responses based on the user's context:
 
 - **Conceptual questions** ("what is forward kinematics?"): Explain the concept, then point to the relevant notebook and show how the project demonstrates it in code. Prefer linking to the `external/` tutorials for theory and the project's own notebooks for hands-on practice.
 - **New users**: Suggest the beginner learning path and the `00-start-here` notebook. Mention that no physical robot is needed -- the `simulated` profile or headless simulation covers everything.
-- **Teaching / assignments**: Highlight the `minimal` Docker profile (no GPU required) and the `external/` tutorial collections. Suggest that students can verify analytical solutions against the simulator (e.g., compute FK by hand, then check with `robot.model.fkine()`). See [learning-resources.md](learning-resources.md) for assignment ideas and experiment prompts.
+- **Teaching / assignments**: Highlight the `minimal` Docker profile (no GPU required) and the `external/` tutorial collections. Suggest that students can verify analytical solutions against the simulator (e.g., compute FK by hand, then check with `robot.symbolic_model.fkine()`). See [learning-resources.md](learning-resources.md) for assignment ideas and experiment prompts.
 - **Self-learners with a textbook**: Map their current topic to the Concepts and Capabilities table above. If they mention Corke's *Robotics, Vision and Control* or a specific chapter, use the detailed chapter mapping in [learning-resources.md](learning-resources.md) to point them to the exact notebook and experiment prompt.
 - **Code generation**: Use the current API classes (`RobotDevice`, `SimulatedRobotDevice`, etc.) from `devices.py`, not the deprecated `base.py` classes. Always use the URDF context manager pattern.
 

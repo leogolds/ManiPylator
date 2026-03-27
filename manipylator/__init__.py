@@ -33,15 +33,24 @@ try:
     from .base import (
         MovementCommand,
         MovementSequence,
-        Visualizer,
+        Simulator,
+        KinematicSimulator,
+        PhysicsSimulator,
+        World,
+        WorldMorphs,
         Robot,
         SimulatedRobot,
         HeadlessSimulatedRobot,
     )
+
     __all__ += [
         "MovementCommand",
         "MovementSequence",
-        "Visualizer",
+        "Simulator",
+        "KinematicSimulator",
+        "PhysicsSimulator",
+        "World",
+        "WorldMorphs",
         "Robot",
         "SimulatedRobot",
         "HeadlessSimulatedRobot",

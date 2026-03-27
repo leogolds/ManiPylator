@@ -97,6 +97,30 @@ A:
 2. Ensure proper aspect ratio: `hv.RGB(frame).opts(aspect=frame.shape[1] / frame.shape[0])`
 3. Set pixel bounds: `hv.RGB(frame, bounds=(0, 0, width, height))`
 
+### Address already in use when starting Docker services
+
+Docker publishes host ports for the stack (for example **1883** for Mosquitto `mq`, **6379** for Redis `tq`, **8888** for Jupyter `lab`). If something else on the machine is already bound to that port, Compose fails with an error like:
+
+`failed to bind host port 0.0.0.0:1883/tcp: address already in use`
+
+**Find what is using the port (Linux):**
+
+```bash
+sudo ss -tlnp | grep ':1883'
+# or, if installed:
+sudo lsof -i :1883
+```
+
+The output includes a **PID** (process id). Typical causes: a system `mosquitto` or `redis-server` service, another Docker container publishing the same port, or a leftover process after an unclean exit.
+
+**Free the port:**
+
+- If you recognize the process and it is yours: `kill <pid>`, or `kill -9 <pid>` if it does not exit on SIGTERM.
+- If it is another container: `docker ps` (and `docker ps -a`) to find it, then `docker stop <container>`.
+- As a last resort on a dev machine only: `sudo fuser -k 1883/tcp` kills whatever holds that port (replace `1883` with the conflicting port).
+
+If a different Compose project or stack is using the same published ports, stop that stack or change the host port mapping in the relevant `compose.yaml`.
+
 ### Q: MQTT connection problems
 A:
 1. Check if MQTT broker is running
@@ -138,7 +162,7 @@ A: Yes! ManiPylator supports MQTT communication for real robot control. Use
 ### Q: How do I record videos of simulations?
 A: Use Genesis camera recording:
 ```python
-camera = robot.visualizer.camera
+camera = robot.simulator.camera
 camera.start_recording()
 # ... run simulation ...
 camera.stop_recording(save_to_filename='video.mp4', fps=20)

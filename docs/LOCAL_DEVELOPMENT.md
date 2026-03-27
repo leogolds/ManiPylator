@@ -146,6 +146,8 @@ docker compose up -d
 xhost +local:root
 ```
 
+The minimal profile (`docker compose --profile minimal up -d`) publishes **1883** (MQTT) and **6379** (Redis). If the daemon fails to bind with **address already in use**, identify the process with `sudo ss -tlnp | grep ':1883'` (or the relevant port) and stop it, or see [FAQ: Address already in use when starting Docker services](FAQ.md#address-already-in-use-when-starting-docker-services).
+
 Go to [http://localhost:8888/lab/workspaces/auto-0/tree/generate-trajectory-example.ipynb](http://localhost:8888/lab/workspaces/auto-0/tree/generate-trajectory-example.ipynb) for a short intro. The notebook demonstrates loading a URDF, forward/inverse kinematics, and saving control signals as a csv.
 
 ## Project Structure
