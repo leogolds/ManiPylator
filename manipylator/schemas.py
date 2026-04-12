@@ -1,6 +1,7 @@
 # schemas.py
 from __future__ import annotations
 
+import math
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Union
 from datetime import datetime, timezone
@@ -506,18 +507,68 @@ class ControlFeedbackV1(MessageBase):
 # ---------------------------
 
 
+# TODO: this is ugly. we should have one, canonic way of tracking poseses across the codebase
+def validate_joint_q_6dof(v: List[float]) -> List[float]:
+    """Six joint angles in radians; same rules for MQTT ``RobotStateV1.q`` and collision HTTP API."""
+    if len(v) != 6:
+        raise ValueError("q must contain exactly 6 joint angles (radians)")
+    for i, x in enumerate(v):
+        if not math.isfinite(x):
+            raise ValueError(f"q[{i}] must be a finite number")
+    return v
+
+
 class RobotStateV1(MessageBase):
-    message_schema: Literal["manipylator/robot/state/v1"] = (
-        "manipylator/robot/state/v1"
-    )
+    message_schema: Literal["manipylator/robot/state/v1"] = "manipylator/robot/state/v1"
     robot_id: RobotID
     q: List[float] = Field(description="Joint angles in radians")
     gripper: Optional[float] = None
     source: Literal["physical", "simulated", "headless"] = "simulated"
 
+    @field_validator("q")
+    @classmethod
+    def _validate_q(cls, v: List[float]) -> List[float]:
+        return validate_joint_q_6dof(v)
+
     @property
     def topic(self) -> str:
         return f"manipylator/robots/{self.robot_id}/state"
+
+
+# ---------------------------
+# Collision oracle HTTP (same ``q`` as RobotStateV1)
+# ---------------------------
+
+
+class CollisionCheckBodyV1(BaseModel):
+    """JSON body for ``POST /collision``. Mirrors the joint payload of ``RobotStateV1`` (field ``q`` only)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    q: List[float] = Field(
+        description="Joint angles in radians (same as manipylator/robot/state/v1)"
+    )
+
+    @field_validator("q")
+    @classmethod
+    def _validate_q(cls, v: List[float]) -> List[float]:
+        return validate_joint_q_6dof(v)
+
+
+class CollisionCheckResponseV1(BaseModel):
+    """JSON response from ``POST /collision``; echoes ``q`` like ``RobotStateV1`` plus ``collided``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    collided: bool
+    q: List[float] = Field(
+        description="Joint angles in radians (echo of request; same as RobotStateV1.q)"
+    )
+
+    @field_validator("q")
+    @classmethod
+    def _validate_q(cls, v: List[float]) -> List[float]:
+        return validate_joint_q_6dof(v)
 
 
 # ---------------------------

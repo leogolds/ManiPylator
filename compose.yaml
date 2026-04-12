@@ -1,4 +1,33 @@
 services:
+  #TODO: this should be a special purpose service, likely mutually exclusive with lab
+  collision-oracle:
+    image: leogold/manipylator:lab-dagger
+    container_name: manipylator-collision-oracle
+    profiles:
+      - collision
+    command: >
+      bash -c "cd /workspace && pip install -q --no-cache-dir 'fastapi>=0.115' 'uvicorn[standard]>=0.32' && uvicorn manipylator.collision_oracle_app:app --host 0.0.0.0 --port 8765"
+    environment:
+      PYTHONPATH: /workspace
+      COLLISION_ORACLE_WORLD_FILE: /workspace/worlds/empiric_collision_world.py
+      COLLISION_ORACLE_ROBOT_TEMPLATE: robots/empiric
+      COLLISION_ORACLE_MAX_QPS: "0"
+      COLLISION_ORACLE_MAX_QUEUE: "256"
+    volumes:
+      - /dev/dri:/dev/dri
+      - .:/workspace
+      - genesis-cache:/root/.cache
+    ports:
+      - "8765:8765"
+    restart: "no"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
   lab:
     # build:
     #   context: .
@@ -28,7 +57,7 @@ services:
 volumes:
   genesis-cache:
 
-# Include the controller compose file
+    # Include the controller compose file
 include:
   - path: ./containers/controller/compose.yaml
     profiles:

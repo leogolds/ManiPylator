@@ -239,6 +239,48 @@ class Manipylator:
             .as_service()
         )
 
+    # TODO figure out how to expose gpu with dagger
+    @function
+    async def run_collision_oracle(
+        self,
+        source: Annotated[dagger.Directory, "Source directory"],
+        port: Annotated[int, "Port for collision oracle HTTP API"] = 8765,
+    ) -> dagger.Service:
+        """Run the Genesis collision oracle (FastAPI) in the dev container (GPU + Genesis)."""
+        container = await self.dev_container(source)
+        container = (
+            container.with_mounted_directory("/workspace", source)
+            .with_workdir("/workspace")
+            .with_env_variable("PYTHONPATH", "/workspace")
+            .with_env_variable(
+                "COLLISION_ORACLE_WORLD_FILE",
+                "/workspace/worlds/empiric_collision_world.py",
+            )
+            .with_exec(
+                [
+                    "pip",
+                    "install",
+                    "--no-cache-dir",
+                    "fastapi>=0.115",
+                    "uvicorn[standard]>=0.32",
+                ]
+            )
+        )
+        return (
+            container.with_exposed_port(port)
+            .with_exec(
+                [
+                    "uvicorn",
+                    "manipylator.collision_oracle_app:app",
+                    "--host",
+                    "0.0.0.0",
+                    "--port",
+                    str(port),
+                ]
+            )
+            .as_service()
+        )
+
     @function
     def camera_base_container(
         self,
